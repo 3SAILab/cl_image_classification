@@ -116,7 +116,13 @@ Conv7x7(1): F=(1-1)x1+7=7
 ①载入权重后训练所有参数  
 ②载入权重后只训练最后几层参数  
 ③载入权重后在原网络基础上再添加一层全连接层，仅训练最后一个全连接层
+- 为什么不用bias？（BN相关）
 ### 一、网络架构  
 ![Alt](https://i-blog.csdnimg.cn/blog_migrate/75a8be53f53b21a4b5fa433fdf8e9cd6.png)
+从左到右分别是VGG-19,普通34层网络，34层残差网络  
+![Alt](https://i-blog.csdnimg.cn/direct/c60d5f0a4e964994b524d9008b5f57ce.png)
+左边是18和34层用的残差结构，右边是50，101，152层的  
+配置：
+![Alt](https://i-blog.csdnimg.cn/blog_migrate/fc311cfc3719e005c75aa728f8913e3e.png)
 ### 二、重点
 ### 三、注意点
