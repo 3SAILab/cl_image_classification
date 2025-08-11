@@ -1,0 +1,16 @@
+#忽略无关目录
+deep-learning-for-image-processing/
+yzzw_learning/
+#忽略配置文件
+.cache
+.config
+.cursor-server
+.local
+.nv
+.ssh
+.bash_history
+.bash_logout
+.bashrc
+.gitconfig
+.profile
+.lesshst
