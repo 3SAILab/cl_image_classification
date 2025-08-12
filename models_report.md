@@ -118,11 +118,17 @@ Conv7x7(1): F=(1-1)x1+7=7
 ③载入权重后在原网络基础上再添加一层全连接层，仅训练最后一个全连接层
 - 为什么不用bias？（BN相关）
 ### 一、网络架构  
-![Alt](https://i-blog.csdnimg.cn/blog_migrate/75a8be53f53b21a4b5fa433fdf8e9cd6.png)
-从左到右分别是VGG-19,普通34层网络，34层残差网络  
-![Alt](https://i-blog.csdnimg.cn/direct/c60d5f0a4e964994b524d9008b5f57ce.png)
+![Alt](https://i-blog.csdnimg.cn/blog_migrate/75a8be53f53b21a4b5fa433fdf8e9cd6.png)  
+从左到右分别是VGG-19,普通34层网络，34层残差网络（虚线是当维度不匹配的时候，用另一种映射方式）  
+![Alt](https://i-blog.csdnimg.cn/direct/c60d5f0a4e964994b524d9008b5f57ce.png)  
 左边是18和34层用的残差结构，右边是50，101，152层的  
 配置：
 ![Alt](https://i-blog.csdnimg.cn/blog_migrate/fc311cfc3719e005c75aa728f8913e3e.png)
 ### 二、重点
+#### 1.shortcut connection
+- 绕过多层变换，直接加到后续层，使其不在深层中丢失
+- 当输入输出维度相同时恒等映射；当输入输出维度不同时，填充0元素或者用1x1卷积实现维度匹配
+#### 2.**深度残差学习**框架解决退化问题
+- 核心思想是由传统的直接映射变为残差映射，原映射变为F(x)=H(x)+x。  
+普通网络让每一层学H(x)，残差网络让它学与输入x的差值，就是在原有基础上优化，最差就是不进步，这样训练也能更快。
 ### 三、注意点
