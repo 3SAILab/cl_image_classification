@@ -7,11 +7,11 @@ import sys
 from tqdm import tqdm
 import torch.optim as optim
 
-def trainer(cuda,batch_size,model,epochs,save_path,num_classes):
+def trainer(cuda,batch_size,model,epochs,num_classes):
     device = torch.device('cuda:{}'.format(cuda) if torch.cuda.is_available() else 'cpu')
     print("using {} device.".format(device))
 
-    data_root = os.path.abspath(os.path.join(os.getcwd(), ".."))
+    data_root = os.path.abspath(os.getcwd())
     image_path = os.path.join(data_root, "data")
     assert os.path.exists(image_path),"file {} does not exist.".format(image_path)
 
@@ -28,15 +28,16 @@ def trainer(cuda,batch_size,model,epochs,save_path,num_classes):
 
     print("using {} images for training, using {} images for validation.".format(train_num,val_num))
 
-    net = model(num_classes = num_classes, init_weights=True)
+    net = model(num_classes = num_classes, aux_logits=True, init_weights=True)
 
     net.to(device)
     loss_function = torch.nn.CrossEntropyLoss()
     optimizer = optim.Adam(net.parameters(), lr = 0.0001)
 
     best_acc = 0.0
-    save_path = "../checkpoints/{}.pth".format(model.__name__)
+    save_path = "checkpoints/{}.pth".format(model.__name__)
     train_steps = len(train_loader)
+    loss_list = []
     for epoch in range(epochs):
         net.train()
         running_loss = 0.0
@@ -75,8 +76,13 @@ def trainer(cuda,batch_size,model,epochs,save_path,num_classes):
         print("epoch: {} train_loss: {:.3f} val_accuracy: {:.3f}".format(epoch + 1,
                                                                          running_loss / train_steps,
                                                                          val_accuracy))
+
+        loss_list.append(running_loss / train_steps)
+
         if best_acc < val_accuracy:
             best_acc = val_accuracy
             torch.save(net.state_dict(),save_path)
     
     print("Finished Training.")
+
+        
