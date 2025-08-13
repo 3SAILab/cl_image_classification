@@ -14,3 +14,5 @@ yzzw_learning/
 .gitconfig
 .profile
 .lesshst
+#忽略_pycache_
+__pycache__/
