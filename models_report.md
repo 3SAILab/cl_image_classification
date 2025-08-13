@@ -127,6 +127,29 @@ Conv7x7(1): F=(1-1)x1+7=7
 ### 三、注意点  
 #### 1.Bottlenect差异
 - 文章中1x1卷积stride=2,3x3卷积stride=1，pytorch官方用1x1卷积stride=1，3x3卷积stride=2，这样能在top-1上提升0.5%的准确率，官方文档：<https://catalog.ngc.nvidia.com/orgs/nvidia/resources/resnet_50_v1_5_for_pytorch>
+# Inception_v3
+### 一、改进点
+#### 1.分解卷积
+- 大卷积分解为小卷积，例如5x5卷积分为两个3x3的。  
+- 不对称卷积分解，例如7x7变为1x7和7x1。  
+更加节省计算成本，使用特征图尺寸为12x12到20x20，早期层表现较差。
+#### 2.引入LSR（标签平滑正则化）
+- 一种正则化手段，不让模型过度自信。
+- 公式：  
+$$
+y_{\text{smooth}}(k) = 
+\begin{cases}
+1 - \epsilon & \text{if } k = \text{true label} \\
+\frac{\epsilon}{K - 1} & \text{otherwise}
+\end{cases}
+$$
+
+其中：
+$ \epsilon $：平滑系数（如 $ 0.1 $）
+$ K $：总类别数
+- 例如one-hot编码后[0,0,1,0],使用LSR后变成[0.025,0.025,0.9,0.025],可以较少过拟合，提升泛化能力。
+#### 3.多种inception模块
+- 根据不同层级的特征图优化
 # ResNeXt
 ### 0.前期工作
 #### 1.做了什么，为什么做？
