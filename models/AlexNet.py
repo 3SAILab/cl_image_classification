@@ -3,7 +3,7 @@ import torch
 
 
 class AlexNet(nn.Module):
-    def __init__(self, num_classes=1000, init_weights=False,**kwargs):       #init_weights 权重初始化
+    def __init__(self, num_classes=1000, init_weights=False, **kwargs):       #init_weights 权重初始化
         super(AlexNet, self).__init__()
         self.features = nn.Sequential(
             nn.Conv2d(3, 48, kernel_size=11, stride=4, padding=2),  # input[3, 224, 224]  output[48, 55, 55]

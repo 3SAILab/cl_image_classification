@@ -6,4 +6,4 @@ from trainers.trainer import trainer
 from models.GoogLeNet import GoogLeNet
 
 model = GoogLeNet
-trainer(cuda=2,batch_size=32,model=model,epochs=3,num_classes=5)
+trainer(cuda=2, batch_size=32, model=model, epochs=3, num_classes=5)

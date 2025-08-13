@@ -7,7 +7,7 @@ from PIL import Image
 
 from models.GoogLeNet import GoogLeNet
 
-def predict(cuda,model,image_path,class_indict,num_classes):
+def predict(cuda, model, image_path, class_indict, num_classes):
     device = torch.device('cuda:{}'.format(cuda) if torch.cuda.is_available() else 'cpu')
     print("using {} device.".format(device))
 
@@ -20,10 +20,10 @@ def predict(cuda,model,image_path,class_indict,num_classes):
     with open(json_path,"r") as f:
         class_indict = json.load(f)
 
-    model = model(num_classes=num_classes,aux_logits=False).to(device)
+    model = model(num_classes=num_classes, aux_logits=False).to(device)
     weights_path = "../checkpoints/{}.pth".format(model.__name__)
     assert os.path.exists(weights_path),"file: '{}' dose not exist.".format(weights_path)
-    model.load_state_dict(torch.load(weights_path,map_location=device))
+    model.load_state_dict(torch.load(weights_path, map_location=device))
 
     model.eval()
     with torch.no_grad():
@@ -41,4 +41,4 @@ def predict(cuda,model,image_path,class_indict,num_classes):
 
 if __name__ == "__main__":
     image_path = "../data/test/roses.jpg"
-    predict(cuda=2,model=GoogLeNet,image_path=image_path,class_indict=class_indict,num_classes=5)
+    predict(cuda=2, model=GoogLeNet, image_path=image_path, class_indict=class_indict, num_classes=5)
