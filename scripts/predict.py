@@ -5,7 +5,7 @@ from tqdm import tqdm
 from datasets import dataset
 from PIL import Image
 
-from models.GoogLeNet import GoogLeNet
+from models.googlenet import GoogLeNet
 
 def predict(cuda, model, image_path, class_indict, num_classes):
     device = torch.device('cuda:{}'.format(cuda) if torch.cuda.is_available() else 'cpu')

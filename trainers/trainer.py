@@ -1,3 +1,10 @@
+import sys
+import os
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir) 
+sys.path.append(project_root)
+
 import torch.nn as nn
 import torch
 import os
@@ -6,6 +13,8 @@ from datasets import dataset,dataloader
 import sys
 from tqdm import tqdm
 import torch.optim as optim
+from utils.visualization import plot_loss_curves,plot_accuracy_curves
+
 
 def trainer(cuda, batch_size, model, epochs, num_classes):
     device = torch.device('cuda:{}'.format(cuda) if torch.cuda.is_available() else 'cpu')
@@ -84,5 +93,9 @@ def trainer(cuda, batch_size, model, epochs, num_classes):
             torch.save(net.state_dict(), save_path)
     
     print("Finished Training.")
+
+    loss_save_path = "results/{}_loss.jpg"
+    plot_loss_curves(loss_list, epochs, loss_save_path)
+
 
         
