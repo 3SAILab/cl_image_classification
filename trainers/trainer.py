@@ -94,8 +94,5 @@ def trainer(cuda, batch_size, model, epochs, num_classes):
     
     print("Finished Training.")
 
-    loss_save_path = "results/{}_loss.jpg"
+    loss_save_path = "results/{}_loss.jpg".format(model.__name__)
     plot_loss_curves(loss_list, epochs, loss_save_path)
-
-
-        

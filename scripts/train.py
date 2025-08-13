@@ -6,7 +6,7 @@ project_root = os.path.dirname(current_dir)
 sys.path.append(project_root)
 
 from trainers.trainer import trainer
-from models.goolenet import GoogLeNet
+from models.googlenet import GoogLeNet
 
 model = GoogLeNet
-trainer(cuda=2, batch_size=32, model=model, epochs=3, num_classes=5)
+trainer(cuda=2, batch_size=32, model=model, epochs=30, num_classes=5)
