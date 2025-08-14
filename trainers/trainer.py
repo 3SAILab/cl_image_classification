@@ -42,7 +42,8 @@ def trainer(cuda, batch_size, model, epochs):
 
     print("using {} images for training, using {} images for validation.".format(train_num, val_num))
 
-    config_path = "configs/config.yaml"
+    # 导入模型参数
+    config_path = os.path.join(data_root, "configs", "config.yaml")
     assert os.path.exists(config_path),"file {} is not exist.".format(config_path)
     with open(config_path,"r") as f:
         config = yaml.safe_load(f)
@@ -51,6 +52,7 @@ def trainer(cuda, batch_size, model, epochs):
     # 导入模型
     net = model(model_config)
     net.to(device)
+    total_params = sum(p.numel() for p in net.parameters())
 
     # 设置损失函数和优化器
     loss_function = torch.nn.CrossEntropyLoss()
@@ -58,9 +60,12 @@ def trainer(cuda, batch_size, model, epochs):
 
     # 训练
     best_acc = 0.0
-    save_path = "checkpoints/{}.pth".format(model.__name__)
+    save_name = "{}.pth".format(model.__name__)
+    save_path = os.path.join(data_root, "checkpoints", save_name)
     train_steps = len(train_loader)
     loss_list = []
+    accuracy_list = []
+    
     for epoch in range(epochs):
         net.train()
         running_loss = 0.0
@@ -101,6 +106,7 @@ def trainer(cuda, batch_size, model, epochs):
                                                                          val_accuracy))
 
         loss_list.append(running_loss / train_steps)
+        accuracy_list.append(val_accuracy)
 
         if best_acc < val_accuracy:
             best_acc = val_accuracy
@@ -109,5 +115,22 @@ def trainer(cuda, batch_size, model, epochs):
     print("Finished Training.")
 
     # 绘制损失曲线
-    loss_save_path = "results/{}_loss.jpg".format(model.__name__)
+    loss_save_name = "{}_loss.jpg".format(model.__name__)
+    loss_save_path = os.path.join(data_root, "results", loss_save_name)
     plot_loss_curves(loss_list, epochs, loss_save_path)
+
+    # 保存训练日志
+    train_log_name = "{}.txt".format(model.__name__)
+    train_log_path = os.path.join(data_root, "logs", train_log_name)
+    
+    log_data = {
+        "Parameters": total_params,
+        "Train Epochs": epochs,
+        "Batch Size": batch_size,
+        "Initial Learning Rate": 0.0001,
+        "Train Loss List": loss_list,
+        "Accuracy List": accuracy_list
+    }
+
+    with open(train_log_path, "w", encoding="utf-8") as f:
+        json.dump(log_data, f, indent=4, ensure_ascii=False)
