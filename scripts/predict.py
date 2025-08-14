@@ -7,8 +7,7 @@ import matplotlib.pyplot as plt
 
 from models.googlenet import GoogLeNet
 
-def predict(cuda, model, image_path, num_classes):
-    device = torch.device('cuda:{}'.format(cuda) if torch.cuda.is_available() else 'cpu')
+def predict(model, image_path, num_classes):
     print("using {} device.".format(device))
 
     img = Image.open(image_path)
@@ -41,4 +40,5 @@ def predict(cuda, model, image_path, num_classes):
 
 if __name__ == "__main__":
     image_path = "../data/test/roses.jpg"
-    predict(cuda=2, model=GoogLeNet, image_path=image_path, num_classes=5)
+    device = torch.device('cuda:2' if torch.cuda.is_available() else 'cpu')
+    predict(device=device, model=GoogLeNet, image_path=image_path, num_classes=5)

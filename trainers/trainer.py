@@ -9,17 +9,16 @@ import torch.nn as nn
 import torch
 import os
 import json
-from datasets import dataset,dataloader
+from datasets import dataset, dataloader
 import sys
 from tqdm import tqdm
 import torch.optim as optim
-from utils.visualization import plot_loss_curves,plot_accuracy_curves
+from utils.visualization import plot_loss_curves, plot_accuracy_curves
 import yaml
 
 
-def trainer(cuda, batch_size, model, epochs):
+def trainer(device, config, batch_size, model, epochs):
     # 选择设备
-    device = torch.device('cuda:{}'.format(cuda) if torch.cuda.is_available() else 'cpu')
     print("using {} device.".format(device))
 
     # 设置数据集路径
