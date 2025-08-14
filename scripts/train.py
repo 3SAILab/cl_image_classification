@@ -11,4 +11,4 @@ from models.googlenet import GoogLeNet
 
 model = GoogLeNet
 device = torch.device('cuda:2' if torch.cuda.is_available() else 'cpu')
-trainer(device=device, batch_size=32, model=model, epochs=30)
+trainer(device=device, model=model, need_seed=True)
