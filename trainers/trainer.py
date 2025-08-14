@@ -17,7 +17,7 @@ from utils.visualization import plot_loss_curves, plot_accuracy_curves
 import yaml
 
 
-def trainer(device, config, batch_size, model, epochs):
+def trainer(device, batch_size, model, epochs):
     # 选择设备
     print("using {} device.".format(device))
 
@@ -117,6 +117,11 @@ def trainer(device, config, batch_size, model, epochs):
     loss_save_name = "{}_loss.jpg".format(model.__name__)
     loss_save_path = os.path.join(data_root, "results", loss_save_name)
     plot_loss_curves(loss_list, epochs, loss_save_path)
+
+    # 绘制准确率曲线
+    acc_save_name = "{}_acc.jpg".format(model.__name__)
+    acc_save_path = os.path.join(data_root, "results", acc_save_name)
+    plot_accuracy_curves(accuracy_list, epochs, acc_save_path)
 
     # 保存训练日志
     train_log_name = "{}.txt".format(model.__name__)

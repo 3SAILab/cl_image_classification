@@ -9,7 +9,7 @@ class Fire(nn.Module):
         self.squeeze_activation = nn.ReLU(inplace=True)
         self.expand1x1 = nn.Conv2d(squeeze_planes, expand1x1_planes, kernel_size=1)
         self.expand1x1_activation = nn.ReLU(inplace=True)
-        self.expand3x3 = nn.Conv2d(squeeze_planes, expand3x3_planes, kernel_size=3, paddiing=1)
+        self.expand3x3 = nn.Conv2d(squeeze_planes, expand3x3_planes, kernel_size=3, padding=1)
         self.expand3x3_activation = nn.ReLU(inplace=True)
 
     def forward(self, x):
@@ -24,10 +24,10 @@ class SqueezeNet(nn.Module):
         self.num_classes = model_config.get('num_classes')
         self.version = model_config.get('version')
         if  self.version == "1_0":
-            self.feature = nn.Sequential(
+            self.features = nn.Sequential(
                 nn.Conv2d(3, 96, kernel_size=7, stride=2),
                 nn.ReLU(inplace=True),
-                nn.Maxpool2d(kernel_size=3, stride=2, ceil_mode=True),
+                nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
                 Fire(96, 16, 64, 64),
                 Fire(128, 16, 64, 64),
                 Fire(128, 32, 128, 128),
