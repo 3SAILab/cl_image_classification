@@ -14,19 +14,24 @@ import sys
 from tqdm import tqdm
 import torch.optim as optim
 from utils.visualization import plot_loss_curves,plot_accuracy_curves
+import yaml
 
 
-def trainer(cuda, batch_size, model, epochs, num_classes):
+def trainer(cuda, batch_size, model, epochs):
+    # 选择设备
     device = torch.device('cuda:{}'.format(cuda) if torch.cuda.is_available() else 'cpu')
     print("using {} device.".format(device))
 
+    # 设置数据集路径
     data_root = os.path.abspath(os.getcwd())
     image_path = os.path.join(data_root, "data")
     assert os.path.exists(image_path),"file {} does not exist.".format(image_path)
 
+    # 设置并行进程数
     nw = min([os.cpu_count(), batch_size if batch_size > 1 else 0,8])
     print("using {} dataloader workers every process.".format(nw))
 
+    # 数据加载和预处理
     train_dataset = dataset.train_dataset(os.path.join(image_path, "train"))
     train_num = len(train_dataset)
     train_loader =  dataloader.train_loader(train_dataset, batch_size,nw)
@@ -37,12 +42,21 @@ def trainer(cuda, batch_size, model, epochs, num_classes):
 
     print("using {} images for training, using {} images for validation.".format(train_num, val_num))
 
-    net = model(num_classes=num_classes, aux_logits=True, init_weights=True)
+    config_path = "configs/config.yaml"
+    assert os.path.exists(config_path),"file {} is not exist.".format(config_path)
+    with open(config_path,"r") as f:
+        config = yaml.safe_load(f)
+    model_config = config[model.__name__]
 
+    # 导入模型
+    net = model(model_config)
     net.to(device)
+
+    # 设置损失函数和优化器
     loss_function = torch.nn.CrossEntropyLoss()
     optimizer = optim.Adam(net.parameters(), lr = 0.0001)
 
+    # 训练
     best_acc = 0.0
     save_path = "checkpoints/{}.pth".format(model.__name__)
     train_steps = len(train_loader)
@@ -94,5 +108,6 @@ def trainer(cuda, batch_size, model, epochs, num_classes):
     
     print("Finished Training.")
 
+    # 绘制损失曲线
     loss_save_path = "results/{}_loss.jpg".format(model.__name__)
     plot_loss_curves(loss_list, epochs, loss_save_path)

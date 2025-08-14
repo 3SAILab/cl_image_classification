@@ -4,9 +4,11 @@ import torch.nn.functional as F
 
 
 class GoogLeNet(nn.Module):
-    def __init__(self, num_classes=1000, aux_logits=True, init_weights=False, **kwargs):
+    def __init__(self, model_config):
         super(GoogLeNet, self).__init__()
-        self.aux_logits = aux_logits
+        self.aux_logits = model_config.get("aux_logits")
+        self.num_classes = model_config.get("num_classes")
+        self.init_weights = model_config.get("init_weights")
 
         self.conv1 = BasicConv2d(3, 64, kernel_size=7, stride=2, padding=3)
         self.maxpool1 = nn.MaxPool2d(3, stride=2, ceil_mode=True)
@@ -30,13 +32,13 @@ class GoogLeNet(nn.Module):
         self.inception5b = Inception(832, 384, 192, 384, 48, 128, 128)
 
         if self.aux_logits:
-            self.aux1 = InceptionAux(512, num_classes)
-            self.aux2 = InceptionAux(528, num_classes)
+            self.aux1 = InceptionAux(512, self.num_classes)
+            self.aux2 = InceptionAux(528, self.num_classes)
 
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.dropout = nn.Dropout(0.4)
-        self.fc = nn.Linear(1024, num_classes)
-        if init_weights:
+        self.fc = nn.Linear(1024, self.num_classes)
+        if self.init_weights:
             self._initialize_weights()
 
     def forward(self, x):

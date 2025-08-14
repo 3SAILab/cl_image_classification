@@ -1,0 +1,17 @@
+AlexNet:
+  num_classes: 5
+  init_weights: False
+
+vgg:
+  num_classes: 5
+  init_weights: False
+  model_name: 'vgg16'
+
+GoogLeNet:
+  num_classes: 5
+  aux_logits: True
+  init_weights: False
+
+resnet34:
+  num_classes: 5
+  include_top: True
