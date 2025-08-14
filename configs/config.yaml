@@ -19,3 +19,8 @@ resnet34:
 SqueezeNet:
   version: '1_0'
   num_classes: 5
+
+train:
+  seed: 42
+  batch_size: 32
+  epochs: 30
