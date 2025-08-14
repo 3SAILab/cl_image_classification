@@ -16,3 +16,6 @@ yzzw_learning/
 .lesshst
 #忽略_pycache_
 __pycache__/
+#忽略数据集，权重保存文件
+data/
+checkpoints/
