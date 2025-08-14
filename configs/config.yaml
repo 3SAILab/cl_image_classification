@@ -15,3 +15,7 @@ GoogLeNet:
 resnet34:
   num_classes: 5
   include_top: True
+
+SqueezeNet:
+  version: '1_0'
+  num_classes: 5
