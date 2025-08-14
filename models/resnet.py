@@ -126,8 +126,8 @@ class ResNet(nn.Module):
 
         return x
         
-def resnet34(num_classes=1000, include_top=True):
-    return ResNet(BasicBlock, [3,4,6,3], num_classes=num_classes, include_top=include_top)
+def resnet34(model_config):
+    return ResNet(BasicBlock, [3,4,6,3], num_classes=model_config.get('num_classes'), include_top=model_config.get('include_top'))
 
-def resnet101(num_classes=1000,include_top=True):
-    return ResNet(Bottleneck, [3,4,23,3], num_classes=num_classes, include_top=include_top)
+def resnet101(model_config):
+    return ResNet(Bottleneck, [3,4,23,3], num_classes=model_config.get('num_classes'), include_top=model_config.get('include_top'))

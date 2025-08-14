@@ -10,7 +10,7 @@ model_urls = {
 }
 
 class VGG(nn.Module):
-    def __init__(self, features, class_num=1000, init_weights=False, **kwargs):
+    def __init__(self, features, num_classes=1000, init_weights=False):
         super(VGG, self).__init__()
         self.features = features
         self.classifier = nn.Sequential(
@@ -20,7 +20,7 @@ class VGG(nn.Module):
             nn.Dropout(p=0.5),
             nn.Linear(2048, 2048),
             nn.ReLU(True),
-            nn.Linear(2048, class_num)
+            nn.Linear(2048, num_classes)
         )
         if init_weights:
             self._initialize_weights()
@@ -60,12 +60,16 @@ cfgs = {
     'vgg19':[64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512, 'M', 512, 512, 512, 512, 'M']
 }
 
-def vgg(model_name='vgg16', **kwargs):
+def vgg(model_config):
+    model_name = model_config.get('model_name')
+    num_classes = model_config.get('num_classes')
+    init_weights = model_config.get('init_weights')
+
     try:
         cfg = cfgs[model_name]
     except:
         print("warning: model number {} not in cfgs dict!".format(model_name))
         exit(-1)
-    model = VGG(make_features(cfg), **kwargs)
+    model = VGG(make_features(cfg), num_classes=num_classes, init_weights=init_weights)
     return model
     
