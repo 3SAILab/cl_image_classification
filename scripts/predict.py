@@ -1,15 +1,13 @@
 import torch
-import torch.nn as nn
-import torch.optim as optim
-from tqdm import tqdm
 from datasets import dataset
 from PIL import Image
 import os
 import json
+import matplotlib.pyplot as plt
 
 from models.googlenet import GoogLeNet
 
-def predict(cuda, model, image_path, class_indict, num_classes):
+def predict(cuda, model, image_path, num_classes):
     device = torch.device('cuda:{}'.format(cuda) if torch.cuda.is_available() else 'cpu')
     print("using {} device.".format(device))
 
@@ -43,4 +41,4 @@ def predict(cuda, model, image_path, class_indict, num_classes):
 
 if __name__ == "__main__":
     image_path = "../data/test/roses.jpg"
-    predict(cuda=2, model=GoogLeNet, image_path=image_path, class_indict=class_indict, num_classes=5)
+    predict(cuda=2, model=GoogLeNet, image_path=image_path, num_classes=5)
