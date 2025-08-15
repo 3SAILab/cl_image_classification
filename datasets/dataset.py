@@ -16,7 +16,6 @@ def val_dataset(root):
     return datasets.ImageFolder(root=root,
                                 transform=transform["val"])
 
-def test_dataset(root):
-    return datasets.ImageFolder(root=root,
-                                transform=transform["val"])
+def test_dataset(img):
+    return transform["val"](img)
                                
