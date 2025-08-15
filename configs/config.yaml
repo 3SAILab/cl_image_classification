@@ -16,6 +16,10 @@ resnet34:
   num_classes: 5
   include_top: True
 
+resnet50:
+  num_classes: 5
+  include_top: True
+
 SqueezeNet:
   version: '1_0'
   num_classes: 5
@@ -28,3 +32,6 @@ train:
 Inception3:
   num_classes: 5
   aux_logits: True
+
+InceptionResNetV2:
+  num_classes: 5
