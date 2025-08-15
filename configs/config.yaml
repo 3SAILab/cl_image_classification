@@ -24,3 +24,7 @@ train:
   seed: 42
   batch_size: 32
   epochs: 30
+
+Inception3:
+  num_classes: 5
+  aux_logits: True
