@@ -35,3 +35,6 @@ Inception3:
 
 InceptionResNetV2:
   num_classes: 20
+
+wideresnet40:
+  num_classes: 20
