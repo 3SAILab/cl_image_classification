@@ -3,7 +3,7 @@ import torch.nn as nn
 
 class BasicBlock(nn.Module):
     expansion = 1 #主分支的卷积核个数是否相同
-    def __init__(self, in_channel, out_channel, stride=1, downsample=None): #downsample下采样参数
+    def __init__(self, in_channel, out_channel, stride=1, downsample=None, base_width=64): #downsample下采样参数
         super(BasicBlock,self).__init__()
         self.conv1 = nn.Conv2d(in_channels=in_channel, out_channels=out_channel,
                                kernel_size=3, stride=stride, padding=1, bias=False)
@@ -33,15 +33,16 @@ class BasicBlock(nn.Module):
 
 class Bottleneck(nn.Module):
     expansion = 4
-    def __init__(self, in_channel, out_channel, stride=1, downsample=None):
+    def __init__(self, in_channel, out_channel, stride=1, downsample=None, base_width=64):
         super(Bottleneck,self).__init__()
-        self.conv1 = nn.Conv2d(in_channels=in_channel, out_channels=out_channel,
+        width = int(out_channel * (base_width / 64.0))
+        self.conv1 = nn.Conv2d(in_channels=in_channel, out_channels=width,
                                kernel_size=1, stride=1, bias=False)
-        self.bn1 = nn.BatchNorm2d(out_channel)
-        self.conv2 = nn.Conv2d(in_channels=out_channel, out_channels=out_channel,
+        self.bn1 = nn.BatchNorm2d(width)
+        self.conv2 = nn.Conv2d(in_channels=width, out_channels=width,
                                kernel_size=3, stride=stride, bias=False,padding=1)
-        self.bn2 = nn.BatchNorm2d(out_channel)
-        self.conv3 = nn.Conv2d(in_channels=out_channel, out_channels=out_channel*self.expansion,
+        self.bn2 = nn.BatchNorm2d(width)
+        self.conv3 = nn.Conv2d(in_channels=width, out_channels=out_channel*self.expansion,
                                kernel_size=1, stride=1, bias=False)
         self.bn3 = nn.BatchNorm2d(out_channel*self.expansion)
         self.relu = nn.ReLU(inplace=True)
@@ -69,10 +70,11 @@ class Bottleneck(nn.Module):
         return out
 
 class ResNet(nn.Module):
-    def __init__(self, block, block_num, num_classes=1000, include_top=True, **kwargs): #block_num参数列表
+    def __init__(self, block, block_num, num_classes=1000, include_top=True, width_per_group=64): #block_num参数列表
         super(ResNet, self).__init__()
         self.include_top = include_top
         self.in_channel = 64
+        self.base_width = width_per_group
 
         self.conv1 = nn.Conv2d(3, self.in_channel, kernel_size=7, stride=2,
                                padding=3, bias=False)
@@ -100,7 +102,7 @@ class ResNet(nn.Module):
             )
 
         layers = []
-        layers.append(block(self.in_channel, channel, downsample=downsample, stride=stride))
+        layers.append(block(self.in_channel, channel, stride, downsample, self.base_width))
         self.in_channel = channel*block.expansion
 
         for _ in range(1, block_num):
@@ -127,10 +129,14 @@ class ResNet(nn.Module):
         return x
         
 def resnet34(model_config):
-    return ResNet(BasicBlock, [3,4,6,3], num_classes=model_config.get('num_classes'), include_top=model_config.get('include_top'))
+    return ResNet(BasicBlock, [3, 4, 6, 3], num_classes=model_config.get('num_classes'), include_top=model_config.get('include_top'))
 
 def resnet101(model_config):
-    return ResNet(Bottleneck, [3,4,23,3], num_classes=model_config.get('num_classes'), include_top=model_config.get('include_top'))
+    return ResNet(Bottleneck, [3, 4, 23, 3], num_classes=model_config.get('num_classes'), include_top=model_config.get('include_top'))
 
 def resnet50(model_config):
-    return ResNet(Bottleneck, [3,4,6,3], num_classes=model_config.get('num_classes'), include_top=model_config.get('include_top'))
+    return ResNet(Bottleneck, [3, 4, 6, 3], num_classes=model_config.get('num_classes'), include_top=model_config.get('include_top'))
+
+def wide_resnet50_2(model_config):
+    return ResNet(Bottleneck, [3, 4, 6, 3], num_classes=model_config.get('num_classes'), include_top=model_config.get('include_top'),
+                  width_per_group=model_config.get("width_per_group"))
