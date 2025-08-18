@@ -177,6 +177,7 @@ def trainer(device, model, need_seed=False):
         "Train Epochs": epochs,
         "Batch Size": batch_size,
         "Initial Learning Rate": 0.0001,
+        "Seed": seed,
         "Best Accuracy": best_acc,
         "Train Time": total_train_time,
         "Loss List": loss_list,
