@@ -21,7 +21,7 @@ def plot_accuracy_curves(accuracy_list, epochs, save_path):
     plt.savefig(save_path)
     plt.close()
 
-def plot_training_curves(loss, acc, val_loss, val_acc, title, figsize=(12, 6)):
+def plot_training_curves(loss, acc, val_loss, val_acc, title, name, figsize=(12, 6)):
     # --- 数据准备 ---
     epochs = range(1, len(loss) + 1)
 
@@ -87,6 +87,8 @@ def plot_training_curves(loss, acc, val_loss, val_acc, title, figsize=(12, 6)):
 
     # 调整布局，防止标签重叠
     fig.tight_layout()
+
+    plt.savefig("results/{}_curves.png".format(name))
     
     plt.show()
 
@@ -98,6 +100,5 @@ if __name__ == "__main__":
         history = json.load(f)
 
     plot_training_curves(history['Loss List'], history['Accuracy List'], history['Val Loss List'], history['Val Accuracy List'],
-                         title="Image Classification Model Performance")
+                         title="Image Classification Model Performance", name=name)
 
-    plt.savefig("results/{}_curves.png".format(name))
