@@ -12,7 +12,7 @@ from datasets import dataset, dataloader
 import sys
 from tqdm import tqdm
 import torch.optim as optim
-from utils.visualization import plot_loss_curves, plot_accuracy_curves
+from utils.visualization import plot_training_curves
 import yaml
 import numpy as np
 import random
@@ -168,16 +168,6 @@ def trainer(device, model, need_seed=False):
     total_train_time = total_train_end - total_train_start
     print("Total Training Time: {:.5f}".format(total_train_time))
 
-    # 绘制损失曲线
-    loss_save_name = "{}_loss.jpg".format(model.__name__)
-    loss_save_path = os.path.join(data_root, "results", loss_save_name)
-    plot_loss_curves(loss_list, epochs, loss_save_path)
-
-    # 绘制准确率曲线
-    acc_save_name = "{}_acc.jpg".format(model.__name__)
-    acc_save_path = os.path.join(data_root, "results", acc_save_name)
-    plot_accuracy_curves(val_accuracy_list, epochs, acc_save_path)
-
     # 保存训练日志
     train_log_name = "{}.txt".format(model.__name__)
     train_log_path = os.path.join(data_root, "logs", train_log_name)
@@ -197,3 +187,7 @@ def trainer(device, model, need_seed=False):
 
     with open(train_log_path, "w", encoding="utf-8") as f:
         json.dump(log_data, f, indent=4, ensure_ascii=False)
+
+    # 绘制训练损失及准确率曲线图
+    plot_training_curves(log_data['Loss List'], log_data['Accuracy List'], log_data['Val Loss List'], log_data['Val Accuracy List'],
+                         title="Image Classification Model Performance", name=model.__name__)
