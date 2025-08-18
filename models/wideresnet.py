@@ -1,5 +1,40 @@
+from re import X
 import torch
 import torch.nn as nn
+
+class BasicBlock(nn.Module):
+    expansion = 1 #主分支的卷积核个数是否相同
+    def __init__(self, in_channel, out_channel, stride=1, downsample=None, base_width=64): #downsample下采样参数
+        super(BasicBlock,self).__init__()
+        width = int(out_channel * (base_width / 64.0))
+        self.bn1 = nn.BatchNorm2d(in_channel)
+        self.relu1 = nn.ReLU(inplace=True)
+        self.conv1 = nn.Conv2d(in_channels=in_channel, out_channels=width,
+                               kernel_size=3, stride=stride, padding=1, bias=False)
+        
+        self.bn2 = nn.BatchNorm2d(width)
+        self.relu2 = nn.ReLU(inplace=True)
+        self.conv2 = nn.Conv2d(in_channels=width, out_channels=out_channel,
+                               kernel_size=3, stride=1, padding=1, bias=False)
+       
+        self.downsample = downsample
+
+    def forward(self, x):
+        identity = x
+        if self.downsample is not None:
+            identity = self.downsample(x)
+        
+        out = self.bn1(x)
+        out = self.relu1(out)
+        out = self.conv1(out)
+        
+        out = self.bn2(out)
+        out = self.relu2(out)
+        out = self.conv2(out)
+
+        out += identity
+
+        return out
 
 class Bottleneck(nn.Module):
     expansion = 4
@@ -107,4 +142,7 @@ def wide_resnet50_2_v2(model_config):
     return ResNet(Bottleneck, [3, 4, 6, 3], num_classes=model_config.get('num_classes'), include_top=model_config.get('include_top'),
                   width_per_group=model_config.get("width_per_group"))
 
+def wide_resnet34_2_v2(model_config):
+    return ResNet(BasicBlock, [3, 4, 6, 3], num_classes=model_config.get('num_classes'), include_top=model_config.get('include_top'),
+                  width_per_group=model_config.get("width_per_group"))
 
