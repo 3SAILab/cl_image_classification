@@ -229,7 +229,9 @@ $ K $：总类别数
 #### 1.pytorch官方未实现DenseNet264,新加了一个DenseNet161，其中的growth_rate=48。官方默认设置dropout(p=0),也就是不启用，因为bn已经有很强的正则化。在自己数据集上实验显示161效果最好，但都体现出过拟合现象（？）
 # Xception
 ### 一、网络架构
-![Alt](https://i-blog.csdnimg.cn/blog_migrate/12cd63949bad5aeae1ca5f10030888a1.png)
+![Alt](https://i-blog.csdnimg.cn/blog_migrate/12cd63949bad5aeae1ca5f10030888a1.png)  
+![Alt](https://i-blog.csdnimg.cn/blog_migrate/c8d7028ebe80463fa7b4bf215b6d6a79.png)![Alt](https://i-blog.csdnimg.cn/blog_migrate/0d9d08d8eb8eff0b9f291211b3994868.png)  
+左图是inception部分结构，右图是Xception部分结构
 ### 二、重点
 #### 1.将inception定义为普通卷积层与深度可分离卷积层的“中间态”
 - 深度卷积：用于提取空间特征，channel不变，H/W改变。  
