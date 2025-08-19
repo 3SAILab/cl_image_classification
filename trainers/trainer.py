@@ -8,7 +8,7 @@ sys.path.append(project_root)
 import torch
 import os
 import json
-from datasets import dataset, dataloader
+from datasets import dataset, dataloader, transform
 import sys
 from tqdm import tqdm
 import torch.optim as optim
@@ -100,28 +100,35 @@ def trainer(device, model, need_seed=False):
         running_loss = 0.0
         running_acc = 0.0
         train_bar = tqdm(train_loader, file = sys.stdout)
-        for step,data in enumerate(train_bar):
-            images,labels = data
+        for step, data in enumerate(train_bar):
+            images, labels = data
+            images, labels = images.to(device), labels.to(device)
+
+            # 数据增强mixup
+            images, labels_a, labels_b, lam = transform.mixup_data(images, labels, device, alpha=0.4)
+
             optimizer.zero_grad()
             if model.__name__ == "GoogLeNet":
-                logits, aux_logits1, aux_logits2 = net(images.to(device))
+                logits, aux_logits1, aux_logits2 = net(images)
                 train_predict_y = torch.max(logits, dim=1)[1]
-                loss0 = loss_function(logits, labels.to(device))
-                loss1 = loss_function(aux_logits1, labels.to(device))
-                loss2 = loss_function(aux_logits2, labels.to(device))
+                loss0 = transform.mixup_criterion(loss_function, logits, labels_a, labels_b, lam)
+                loss1 = transform.mixup_criterion(loss_function, aux_logits1, labels_a, labels_b, lam)
+                loss2 = transform.mixup_criterion(loss_function, aux_logits2, labels_a, labels_b, lam)
                 loss = loss0 + loss1*0.3 + loss2*0.3
             elif model.__name__ == "Inception3":
-                logits, aux_logits = net(images.to(device))
+                logits, aux_logits = net(images)
                 train_predict_y = torch.max(logits, dim=1)[1]
-                loss0 = loss_function(logits, labels.to(device))
-                loss1 = loss_function(aux_logits, labels.to(device))
+                loss0 = transform.mixup_criterion(loss_function, logits, labels_a, labels_b, lam)
+                loss1 = transform.mixup_criterion(loss_function, aux_logits, labels_a, labels_b, lam)
                 loss = loss0 + loss1*0.3
             else:
-                outputs = net(images.to(device))
+                outputs = net(images)
                 train_predict_y = torch.max(outputs, dim=1)[1]
-                loss = loss_function(outputs, labels.to(device))
-                
-            acc = torch.eq(train_predict_y, labels.to(device)).sum().item()
+
+                loss = transform.mixup_criterion(loss_function, outputs, labels_a, labels_b, lam)
+
+            acc = (lam * train_predict_y.eq(labels_a.to(device)).sum().item()
+                    + (1 - lam) * train_predict_y.eq(labels_b.to(device)).sum().item())
             
             loss.backward()
             optimizer.step()

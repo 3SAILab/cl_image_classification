@@ -3,6 +3,7 @@
     "Train Epochs": 50,
     "Batch Size": 32,
     "Initial Learning Rate": 0.0001,
+    "Seed": 42,
     "Best Accuracy": 0.7051792828685259,
     "Train Time": 421.537057608999,
     "Loss List": [
