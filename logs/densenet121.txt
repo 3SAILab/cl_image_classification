@@ -5,7 +5,7 @@
     "Initial Learning Rate": 0.0001,
     "Seed": 42,
     "Best Accuracy": 0.6812749003984063,
-    "Train Time": 287.4082429109985,
+    "Train Time": 285.9391776369994,
     "Loss List": [
         2.6789290709038305,
         2.477195925908546,
