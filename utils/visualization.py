@@ -181,21 +181,33 @@ def plot_multiple_model_comparison(model_data, metric_to_plot='accuracy', title=
     plt.savefig("results/model_comparison_1.png")
     plt.show()
 
-def make_model_data(model_name, num):
-    histories = []
-    for i in range(1, num+1):
-        log_name = "{}_{}.txt".format(model_name, i)
-        log_path = os.path.join("logs", log_name)
-        assert os.path.exists(log_path),"file {} does not exist.".format(log_path)
+def make_models_data(models, num):
+    models_data = {}
+    for k in range(len(models)):
+        histories = []
+        for i in range(1, num+1):
+            log_name = "{}_{}.txt".format(models[k], i)
+            log_path = os.path.join("logs", log_name)
+            assert os.path.exists(log_path),"file {} does not exist.".format(log_path)
 
-        with open(log_path, "r") as f:
-            history = json.load(f)
-        histories.append(history)
+            with open(log_path, "r") as f:
+                history = json.load(f)
+            histories.append(history)
+        
+        models_data[models[k]] = histories
     
-    return histories
+    return models_data
         
 
 if __name__ == "__main__":
+    
+    num_log = 3 # 取几份训练结果文件
+    models = ['GoogLeNet', 'InceptionResNetV2'] # 对比哪些模型
+    models_data = make_models_data(models, num_log)
+
+    plot_multiple_model_comparison(models_data, metric_to_plot='loss')
+
+
     # name = "densenet121"
     # log_path = "logs/{}.txt".format(name)
     # assert os.path.exists(log_path),"file {} does not exist.".format(log_path)
@@ -204,13 +216,3 @@ if __name__ == "__main__":
 
     # plot_training_curves(history['Loss List'], history['Accuracy List'], history['Val Loss List'], history['Val Accuracy List'],
     #                      title="Image Classification Model Performance", name=name)
-
-    n = 2
-    models = ['GoogLeNet', 'InceptionResNetV2']
-    model_data = {}
-
-    for i in range(n):
-        histories = make_model_data(models[i], 3)
-        model_data[models[i]] = histories
-
-    plot_multiple_model_comparison(model_data, metric_to_plot='loss')
