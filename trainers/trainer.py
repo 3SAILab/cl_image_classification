@@ -19,7 +19,7 @@ import random
 import time
 
 
-def trainer(device, model, need_seed=False):
+def trainer(device, model, log_name, need_seed=False):
     # 选择设备
     print("using {} device.".format(device))
 
@@ -84,7 +84,7 @@ def trainer(device, model, need_seed=False):
 
     # 训练
     best_acc = 0.0
-    save_name = "{}.pth".format(model.__name__)
+    save_name = "{}.pth".format(log_name)
     save_path = os.path.join(data_root, "checkpoints", save_name)
     train_steps = len(train_loader)
     val_steps = len(val_loader)
@@ -176,7 +176,7 @@ def trainer(device, model, need_seed=False):
     print("Total Training Time: {:.5f}".format(total_train_time))
 
     # 保存训练日志
-    train_log_name = "{}.txt".format(model.__name__)
+    train_log_name = "{}.txt".format(log_name)
     train_log_path = os.path.join(data_root, "logs", train_log_name)
     
     log_data = {
@@ -197,5 +197,5 @@ def trainer(device, model, need_seed=False):
         json.dump(log_data, f, indent=4, ensure_ascii=False)
 
     # 绘制训练损失及准确率曲线图
-    plot_training_curves(log_data['Loss List'], log_data['Accuracy List'], log_data['Val Loss List'], log_data['Val Accuracy List'],
-                         title="Image Classification Model Performance", name=model.__name__)
+    # plot_training_curves(log_data['Loss List'], log_data['Accuracy List'], log_data['Val Loss List'], log_data['Val Accuracy List'],
+    #                      title="Image Classification Model Performance", name=log_name)
