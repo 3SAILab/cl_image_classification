@@ -190,3 +190,7 @@ def wide_resnet50_2(model_config):
 def resnext50_32x4d(model_config):
     return ResNet(Bottleneck, [3, 4, 6, 3], num_classes=model_config.get('num_classes'), groups=model_config.get("groups"),
                   width_per_group=model_config.get("width_per_group"))
+
+def resnext101_32x8d(model_config):
+    return ResNet(Bottleneck, [3, 4, 23, 3], num_classes=model_config.get('num_classes'), groups=model_config.get("groups"),
+                  width_per_group=model_config.get("width_per_group"))
