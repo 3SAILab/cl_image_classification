@@ -19,7 +19,7 @@ import random
 import time
 
 
-def trainer(device, model, log_name, need_seed=False):
+def trainer(device, model, log_name, need_seed=False, alpha=0.4):
     # 选择设备
     print("using {} device.".format(device))
 
@@ -105,7 +105,7 @@ def trainer(device, model, log_name, need_seed=False):
             images, labels = images.to(device), labels.to(device)
 
             # 数据增强mixup
-            images, labels_a, labels_b, lam = transform.mixup_data(images, labels, device, alpha=0.4)
+            images, labels_a, labels_b, lam = transform.mixup_data(images, labels, device, alpha=alpha)
 
             optimizer.zero_grad()
             if model.__name__ == "GoogLeNet":
@@ -197,5 +197,5 @@ def trainer(device, model, log_name, need_seed=False):
         json.dump(log_data, f, indent=4, ensure_ascii=False)
 
     # 绘制训练损失及准确率曲线图
-    # plot_training_curves(log_data['Loss List'], log_data['Accuracy List'], log_data['Val Loss List'], log_data['Val Accuracy List'],
-    #                      title="Image Classification Model Performance", name=log_name)
+    plot_training_curves(log_data['Loss List'], log_data['Accuracy List'], log_data['Val Loss List'], log_data['Val Accuracy List'],
+                         title="Image Classification Model Performance", name=log_name)
