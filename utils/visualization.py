@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import json
+from cycler import cycler
 
 def plot_loss_curves(loss_list, epochs, save_path):
     plt.figure(figsize=(10, 7))
@@ -92,13 +93,124 @@ def plot_training_curves(loss, acc, val_loss, val_acc, title, name, figsize=(12,
     
     plt.show()
 
+def plot_multiple_model_comparison(model_data, metric_to_plot='accuracy', title=None, figsize=(12, 8)):
+    """
+    在同一图表中对比多个模型在多次运行下的平均性能，并显示置信区间。
+
+    参数:
+    model_data (dict): 字典，键为模型名称(str)，值为该模型的histories列表(list of dict)。
+                       例如: {'ResNet50': [hist1, hist2], 'VGG16': [hist3, hist4]}
+    metric_to_plot (str): 要绘制的指标，可选值为 'accuracy' 或 'loss'。
+    title (str): 图表的标题。如果为None，则会自动生成。
+    figsize (tuple): 图表的大小。
+    """
+    
+    # --- 绘图设置 ---
+    plt.style.use('seaborn-v0_8-paper')
+    plt.rcParams['font.family'] = 'serif'
+    plt.rcParams['font.serif'] = ['Times New Roman'] + plt.rcParams['font.serif']
+    plt.rcParams['axes.labelsize'] = 14
+    plt.rcParams['xtick.labelsize'] = 12
+    plt.rcParams['ytick.labelsize'] = 12
+    plt.rcParams['legend.fontsize'] = 12
+    plt.rcParams['figure.titlesize'] = 16
+    
+    # 设置更丰富的颜色循环
+    color_cycle = cycler(color=['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b'])
+    plt.rc('axes', prop_cycle=color_cycle)
+
+    fig, ax = plt.subplots(figsize=figsize)
+    
+    # --- 确定要绘制的指标 ---
+    if metric_to_plot == 'accuracy':
+        train_metric_key = 'Accuracy List'
+        val_metric_key = 'Val Accuracy List'
+        y_label = 'Accuracy'
+    elif metric_to_plot == 'loss':
+        train_metric_key = 'Loss List'
+        val_metric_key = 'Val Loss List'
+        y_label = 'Loss'
+    else:
+        print("Error: metric_to_plot must be 'accuracy' or 'loss'.")
+        return
+
+    # --- 遍历每个模型的数据并绘图 ---
+    for model_name, histories in model_data.items():
+        if not histories:
+            print(f"Warning: No history data for model '{model_name}'. Skipping.")
+            continue
+            
+        # 聚合数据并计算均值/标准差
+        all_val_metric = np.array([h[val_metric_key] for h in histories])
+        mean_val_metric = np.mean(all_val_metric, axis=0)
+        std_val_metric = np.std(all_val_metric, axis=0)
+        
+        epochs = range(1, len(mean_val_metric) + 1)
+        
+        # 绘制验证集的均值曲线
+        line, = ax.plot(epochs, mean_val_metric, linestyle='-', label=f'{model_name} (Validation)')
+        # 填充验证集的置信区间
+        ax.fill_between(epochs, mean_val_metric - std_val_metric, mean_val_metric + std_val_metric, alpha=0.2, color=line.get_color())
+
+    # --- 图表美化 ---
+    ax.set_xlabel('Epoch')
+    ax.set_ylabel(y_label)
+    ax.grid(linestyle=':', linewidth=0.5)
+    
+    # 自动生成标题
+    if title is None:
+        title = f'Comparison of Model Validation {y_label}'
+    
+    plt.title(title, pad=20)
+    
+    # --- [修改] 将图例移动到图表下方，并横向排列 ---
+    num_models = len(model_data)
+    ax.legend(
+        loc='upper center', 
+        bbox_to_anchor=(0.5, -0.15), # 将图例的锚点放在图表下方
+        ncol=num_models,             # 根据模型数量设置列数，使其横向排列
+        fancybox=True, 
+        shadow=True
+    )
+    
+    # 调整布局以适应图例
+    fig.tight_layout()
+    
+    # --- 保存和显示 ---
+    # savefig中的 bbox_inches='tight' 会自动调整边界框以包含图例
+    plt.savefig("results/model_comparison_1.png")
+    plt.show()
+
+def make_model_data(model_name, num):
+    histories = []
+    for i in range(1, num+1):
+        log_name = "{}_{}.txt".format(model_name, i)
+        log_path = os.path.join("logs", log_name)
+        assert os.path.exists(log_path),"file {} does not exist.".format(log_path)
+
+        with open(log_path, "r") as f:
+            history = json.load(f)
+        histories.append(history)
+    
+    return histories
+        
+
 if __name__ == "__main__":
-    name = "GoogLeNet"
-    log_path = "logs/{}.txt".format(name)
-    assert os.path.exists(log_path),"file {} does not exist.".format(log_path)
-    with open(log_path, "r") as f:
-        history = json.load(f)
+    # name = "densenet121"
+    # log_path = "logs/{}.txt".format(name)
+    # assert os.path.exists(log_path),"file {} does not exist.".format(log_path)
+    # with open(log_path, "r") as f:
+    #     history = json.load(f)
 
-    plot_training_curves(history['Loss List'], history['Accuracy List'], history['Val Loss List'], history['Val Accuracy List'],
-                         title="Image Classification Model Performance", name=name)
+    # plot_training_curves(history['Loss List'], history['Accuracy List'], history['Val Loss List'], history['Val Accuracy List'],
+    #                      title="Image Classification Model Performance", name=name)
 
+    n = 2
+    models = ['GoogLeNet', 'InceptionResNetV2']
+    model_data = {}
+
+    for i in range(n):
+        histories = make_model_data(models[i], 3)
+        model_data[models[i]] = histories
+
+    plot_multiple_model_comparison(model_data, metric_to_plot='loss')
