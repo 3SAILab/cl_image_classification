@@ -61,6 +61,15 @@ densenet169:
 densenet201:
   num_classes: 20
 
+Xception:
+  num_classes: 20
+
+resnext50_32x4d:
+  num_classes: 20
+  include_top: True
+  groups: 32
+  width_per_group: 4
+
 train:
   seed: 42
   batch_size: 32

@@ -1,18 +1,44 @@
 import torch
 import torch.nn as nn
 
+def conv3x3(in_channels, out_channels, stride=1, groups=1):
+    return nn.Conv2d(
+        in_channels,
+        out_channels,
+        kernel_size=3,
+        stride=stride,
+        padding=1,
+        groups=groups,
+        bias=False
+    )
+
+def conv1x1(in_channels, out_channels, stride=1):
+    return nn.Conv2d(
+        in_channels,
+        out_channels,
+        kernel_size=1,
+        stride=stride,
+        bias=False
+    )
+
 class BasicBlock(nn.Module):
     expansion = 1 #主分支的卷积核个数是否相同
-    def __init__(self, in_channel, out_channel, stride=1, downsample=None, base_width=64): #downsample下采样参数
+    def __init__(
+        self, 
+        in_channel, 
+        out_channel, 
+        stride=1, 
+        downsample=None,
+        groups = 1, 
+        base_width=64):
         super(BasicBlock,self).__init__()
-        self.conv1 = nn.Conv2d(in_channels=in_channel, out_channels=out_channel,
-                               kernel_size=3, stride=stride, padding=1, bias=False)
+        self.conv1 = conv3x3(in_channel, out_channel, stride)
         self.bn1 = nn.BatchNorm2d(out_channel)
-        self.relu = nn.ReLU()
-        self.conv2 = nn.Conv2d(in_channels=out_channel, out_channels=out_channel,
-                               kernel_size=3, stride=1, padding=1, bias=False)
+        self.relu = nn.ReLU(inplace=True)
+        self.conv2 = conv3x3(in_channel, out_channel)
         self.bn2 = nn.BatchNorm2d(out_channel)
         self.downsample = downsample
+        self.stride=stride
 
     def forward(self, x):
         identity = x
@@ -33,20 +59,25 @@ class BasicBlock(nn.Module):
 
 class Bottleneck(nn.Module):
     expansion = 4
-    def __init__(self, in_channel, out_channel, stride=1, downsample=None, base_width=64):
+    def __init__(
+        self, 
+        in_channel, 
+        out_channel, 
+        stride=1, 
+        downsample=None,
+        groups=1, 
+        base_width=64):
         super(Bottleneck,self).__init__()
-        width = int(out_channel * (base_width / 64.0))
-        self.conv1 = nn.Conv2d(in_channels=in_channel, out_channels=width,
-                               kernel_size=1, stride=1, bias=False)
+        width = int(out_channel * (base_width / 64.0)) * groups
+        self.conv1 = conv1x1(in_channel, width)
         self.bn1 = nn.BatchNorm2d(width)
-        self.conv2 = nn.Conv2d(in_channels=width, out_channels=width,
-                               kernel_size=3, stride=stride, bias=False,padding=1)
+        self.conv2 = conv3x3(width, width, stride, groups)
         self.bn2 = nn.BatchNorm2d(width)
-        self.conv3 = nn.Conv2d(in_channels=width, out_channels=out_channel*self.expansion,
-                               kernel_size=1, stride=1, bias=False)
+        self.conv3 = conv1x1(width, out_channel * self.expansion)
         self.bn3 = nn.BatchNorm2d(out_channel*self.expansion)
         self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
+        self.stride=stride
 
     def forward(self, x):
         indentity = x
@@ -70,11 +101,19 @@ class Bottleneck(nn.Module):
         return out
 
 class ResNet(nn.Module):
-    def __init__(self, block, block_num, num_classes=1000, include_top=True, width_per_group=64): #block_num参数列表
+    def __init__(
+        self, 
+        block, 
+        block_num, #block_num参数列表
+        num_classes=1000, 
+        include_top=True,
+        groups=1, 
+        width_per_group=64): 
         super(ResNet, self).__init__()
         self.include_top = include_top
         self.in_channel = 64
         self.base_width = width_per_group
+        self.groups = groups
 
         self.conv1 = nn.Conv2d(3, self.in_channel, kernel_size=7, stride=2,
                                padding=3, bias=False)
@@ -97,16 +136,24 @@ class ResNet(nn.Module):
         downsample = None
         if stride != 1 or self.in_channel != channel*block.expansion:
             downsample = nn.Sequential(
-                nn.Conv2d(self.in_channel, channel*block.expansion, kernel_size=1, stride=stride, bias=False),
-                nn.BatchNorm2d(channel*block.expansion)
+                conv1x1(self.in_channel, channel * block.expansion, stride),
+                nn.BatchNorm2d(channel * block.expansion)
             )
 
         layers = []
-        layers.append(block(self.in_channel, channel, stride, downsample, self.base_width))
+        layers.append(
+            block(
+                self.in_channel,channel, stride, downsample, self.groups, self.base_width
+                )
+        )
         self.in_channel = channel*block.expansion
 
         for _ in range(1, block_num):
-            layers.append(block(self.in_channel,channel))
+            layers.append(
+                block(
+                    self.in_channel, channel, groups=self.groups, base_width=self.base_width
+                    )
+            )
 
         return nn.Sequential(*layers)
     
@@ -138,5 +185,8 @@ def resnet50(model_config):
     return ResNet(Bottleneck, [3, 4, 6, 3], num_classes=model_config.get('num_classes'), include_top=model_config.get('include_top'))
 
 def wide_resnet50_2(model_config):
-    return ResNet(Bottleneck, [3, 4, 6, 3], num_classes=model_config.get('num_classes'), include_top=model_config.get('include_top'),
+    return ResNet(Bottleneck, [3, 4, 6, 3], num_classes=model_config.get('num_classes'), width_per_group=model_config.get("width_per_group"))
+
+def resnext50_32x4d(model_config):
+    return ResNet(Bottleneck, [3, 4, 6, 3], num_classes=model_config.get('num_classes'), groups=model_config.get("groups"),
                   width_per_group=model_config.get("width_per_group"))
