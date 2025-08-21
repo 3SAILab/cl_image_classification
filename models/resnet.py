@@ -1,5 +1,13 @@
+import sys
+import os
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir) 
+sys.path.append(project_root)
+
 import torch
 import torch.nn as nn
+from models.squeezeexcitation import SqueezeExcitation
 
 def conv3x3(in_channels, out_channels, stride=1, groups=1):
     return nn.Conv2d(
@@ -30,7 +38,8 @@ class BasicBlock(nn.Module):
         stride=1, 
         downsample=None,
         groups = 1, 
-        base_width=64):
+        base_width=64,
+        with_se=False):
         super(BasicBlock,self).__init__()
         self.conv1 = conv3x3(in_channel, out_channel, stride)
         self.bn1 = nn.BatchNorm2d(out_channel)
@@ -66,7 +75,8 @@ class Bottleneck(nn.Module):
         stride=1, 
         downsample=None,
         groups=1, 
-        base_width=64):
+        base_width=64,
+        with_se = False):
         super(Bottleneck,self).__init__()
         width = int(out_channel * (base_width / 64.0)) * groups
         self.conv1 = conv1x1(in_channel, width)
@@ -76,6 +86,11 @@ class Bottleneck(nn.Module):
         self.conv3 = conv1x1(width, out_channel * self.expansion)
         self.bn3 = nn.BatchNorm2d(out_channel*self.expansion)
         self.relu = nn.ReLU(inplace=True)
+        if with_se:
+            self.se = SqueezeExcitation(out_channel*self.expansion,
+                                        (out_channel*self.expansion)//16)
+        else:
+            self.se = None
         self.downsample = downsample
         self.stride=stride
 
@@ -95,6 +110,9 @@ class Bottleneck(nn.Module):
         out = self.conv3(out)
         out = self.bn3(out)
 
+        if self.se:
+            out  =self.se(out)
+
         out += indentity
         out = self.relu(out)
 
@@ -108,12 +126,14 @@ class ResNet(nn.Module):
         num_classes=1000, 
         include_top=True,
         groups=1, 
-        width_per_group=64): 
+        width_per_group=64,
+        with_se=False): 
         super(ResNet, self).__init__()
         self.include_top = include_top
         self.in_channel = 64
         self.base_width = width_per_group
         self.groups = groups
+        self.se = with_se
 
         self.conv1 = nn.Conv2d(3, self.in_channel, kernel_size=7, stride=2,
                                padding=3, bias=False)
@@ -143,7 +163,7 @@ class ResNet(nn.Module):
         layers = []
         layers.append(
             block(
-                self.in_channel,channel, stride, downsample, self.groups, self.base_width
+                self.in_channel, channel, stride, downsample, self.groups, self.base_width, self.se
                 )
         )
         self.in_channel = channel*block.expansion
@@ -151,7 +171,7 @@ class ResNet(nn.Module):
         for _ in range(1, block_num):
             layers.append(
                 block(
-                    self.in_channel, channel, groups=self.groups, base_width=self.base_width
+                    self.in_channel, channel, groups=self.groups, base_width=self.base_width, with_se=self.se
                     )
             )
 
@@ -194,3 +214,6 @@ def resnext50_32x4d(model_config):
 def resnext101_32x8d(model_config):
     return ResNet(Bottleneck, [3, 4, 23, 3], num_classes=model_config.get('num_classes'), groups=model_config.get("groups"),
                   width_per_group=model_config.get("width_per_group"))
+
+def se_resnet50(model_config):
+    return ResNet(Bottleneck, [3, 4, 6, 3], num_classes=model_config.get('num_classes'), with_se=model_config.get("with_se"))
