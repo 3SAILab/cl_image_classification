@@ -260,21 +260,19 @@ $ K $：总类别数
 - 文章中提出“基数”，可以理解为通道分开的组数量，相比增加宽度和深度，增加它不会增加参数量。模型主要通过分组卷积实现融合inception,resnet优点的同时高度模块化。
 - ps:个人理解，关于深度卷积和分组卷积，前者应该是后者的极端形式。Xception是利用深度可分离卷积进行相关性解耦，这样虽可以减少参数量，但在某些情况下也许跨通道特征和空间特征需要结合起来看，所以再某些数据集上也许resnext的准确度会更高。
 # MobileNetV1
-### 0.前期工作
-#### 1.做了什么？为什么做？
-- 轻量化的网络，可以在移动端使用。以往的小型网络只关注规模，不关注预测速度，因此该网络主要关注优化延迟，同时也产生小型网络。
-#### 2.亮点
-- 深度可分离卷积
-- 增加超参数$\alpha$,$\rho$
-#### 3.搞懂
-- 深度可分离卷积与普通卷积的区别  
-Xception注重于用它提升表达能力，只替换了inception模块，而该模型注重于用它降低参数量和计算量，使模型更加轻量化。  
+### 一、网络架构
+![Alt](https://i-blog.csdnimg.cn/blog_migrate/42c65ab4806969a79d87df69d8640deb.png)
+### 二、重点
+#### 1.深度可分离卷积
+- Xception注重于用它提升表达能力，只替换了inception模块，而该模型注重于用它降低参数量和计算量，使模型更加轻量化。  
 普通卷积参数：$$D_K \cdot D_K \cdot M \cdot N \cdot D_F \cdot D_F$$  
 深度可分离卷积参数：$$D_K \cdot D_K \cdot M \cdot D_F \cdot D_F + M \cdot N \cdot D_F \cdot D_F$$  
 两者对比：$\frac{D_K \cdot D_K \cdot M \cdot D_F \cdot D_F + M \cdot N \cdot D_F \cdot D_F}{D_K \cdot D_K \cdot M \cdot N \cdot D_F \cdot D_F}=\frac{1}{N}+\frac{1}{D_K^2}$
-- 为什么加这两个参数？有什么作用？  
-宽度乘数$\alpha$：每层均匀瘦化一个网络  
-分辨率乘数$\rho$: 缩减输入图像及内部特征图分辨率
+#### 2.增加两个参数$\alpha$,$\rho$
+- 宽度乘数$\alpha$：每层均匀瘦化一个网络，取(0,1]，通常取1,0.75,0.25,0.5  
+分辨率乘数$\rho$: 缩减输入图像及内部特征图分辨率，取(0,1]，通常设置输入分辨率为224，192，160，128  
+减少计算量：  
+$\frac{D_K \cdot D_K \cdot \alpha M \cdot \rho D_F \cdot \rho D_F + \alpha M \cdot \alpha N \cdot \rho D_F \cdot \rho D_F}{D_K \cdot D_K \cdot M \cdot N \cdot D_F \cdot D_F}=\frac{\alpha \rho}{N}+\frac{\alpha^2 \rho^2}{D_K^2}$
 # 数据增强方法
 ### 1.mixup
 - 对两个样本-标签数据对按比例相加后形成新的样本-标签数据对。
