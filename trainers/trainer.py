@@ -197,5 +197,6 @@ def trainer(device, model, log_name, need_seed=False, alpha=0.4):
         json.dump(log_data, f, indent=4, ensure_ascii=False)
 
     # 绘制训练损失及准确率曲线图
-    plot_training_curves(log_data['Loss List'], log_data['Accuracy List'], log_data['Val Loss List'], log_data['Val Accuracy List'],
-                         title="Image Classification Model Performance", name=log_name)
+    if log_name[-1] == '1':
+        plot_training_curves(log_data['Loss List'], log_data['Accuracy List'], log_data['Val Loss List'], log_data['Val Accuracy List'],
+                            title="Image Classification Model Performance", name=log_name)
