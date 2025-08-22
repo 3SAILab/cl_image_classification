@@ -312,7 +312,17 @@ $\frac{D_K \cdot D_K \cdot \alpha M \cdot \rho D_F \cdot \rho D_F + \alpha M \cd
 - 为了适配移动端的低精度储存，避免输出值过大而导致失真。
 - ReLU6将输出值截断在0-6之间，具体如下图：  
 ![Alt](https://i-blog.csdnimg.cn/blog_migrate/dab14b83606b1a58a8fc75789939dd9e.png)
-
+# EFFNet
+### 一、网络架构
+![Alt](https://i-blog.csdnimg.cn/blog_migrate/3958fb77a243cb46a8280592ffc85ec6.png)
+![Alt](https://i-blog.csdnimg.cn/blog_migrate/0358d996fa7fcff00ee3e8fda0184487.png)
+### 二、重点
+#### 1.创新的卷积块设计
+- 分离式卷积和池化。将深度可分离卷积分为1x3和3x1（inception_v3也用过），中间加上最大池化。拆分卷积可以减少计算量，增加最大池化有利于信息的保留（不像mobilenet直接一步到位）。
+- 压缩通道的瓶颈因子=2。不像mobilenet=8,shufflenet=4。
+- 去掉残差连接和分组卷积。这两个都是为了缓解在深层网络上的问题，但移动端的网络一般很浅，这样反而会丢失信息，降低准确率。
+#### 2.优化首层
+- 首层也用了创新的卷积块，mobilenet和shufflenet认为它占比少不优化，但在小模型上它占比不少，优化能较少计算量。
 # 数据增强方法
 ### 1.mixup
 - 对两个样本-标签数据对按比例相加后形成新的样本-标签数据对。
