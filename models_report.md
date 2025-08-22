@@ -323,7 +323,16 @@ $\frac{D_K \cdot D_K \cdot \alpha M \cdot \rho D_F \cdot \rho D_F + \alpha M \cd
 - 去掉残差连接和分组卷积。这两个都是为了缓解在深层网络上的问题，但移动端的网络一般很浅，这样反而会丢失信息，降低准确率。
 #### 2.优化首层
 - 首层也用了创新的卷积块，mobilenet和shufflenet认为它占比少不优化，但在小模型上它占比不少，优化能较少计算量。
-# 数据增强方法
+#### 3.使用Leaky ReLU  
+- 解决负输入零梯度的问题，扩大函数范围  
+公式：  
+$$
+\text{LeakyReLU}(x) = \begin{cases}
+x, & \text{if } x \geq 0 \\
+\alpha x, & \text{if } x < 0
+\end{cases}
+$$  
+![Alt](https://i-blog.csdnimg.cn/blog_migrate/a9983094bb6ff066bcdb281da3839be3.png)
 # ShuffleNetV2
 ### 一、改进点
 #### 1.基于shufflev1的不足提出四个准则：
@@ -339,6 +348,7 @@ shuffle操作换位置。
 - 用于空间下采样单元，不增加**通道分割**操作；  
 左边结构改变，最后特征图空间大小减半，通道数翻倍。 
 ![Alt](https://i-blog.csdnimg.cn/blog_migrate/d0d41f274fdf3ac46a6e35223af00676.png)
+# 数据增强方法
 ### 1.mixup
 - 对两个样本-标签数据对按比例相加后形成新的样本-标签数据对。
 - 公式：  
