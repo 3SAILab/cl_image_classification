@@ -70,6 +70,26 @@ resnext50_32x4d:
   groups: 32
   width_per_group: 4
 
+resnext101_32x8d:
+  num_classes: 20
+  include_top: True
+  groups: 32
+  width_per_group: 8
+
+MobileNetV1:
+  num_classes: 20
+  alpha: 0.75
+
+se_resnet50:
+  num_classes: 20
+  include_top: True
+  with_se: True
+
+MobileNetV2:
+  num_classes: 20
+  width_mult: 1.0
+  round_nearest: 8
+
 train:
   seed: 42
   batch_size: 32
