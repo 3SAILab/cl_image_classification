@@ -333,6 +333,8 @@ x, & \text{if } x \geq 0 \\
 \end{cases}
 $$  
 ![Alt](https://i-blog.csdnimg.cn/blog_migrate/a9983094bb6ff066bcdb281da3839be3.png)
+### 三、补充
+#### 1.目前实验出来参数最少的模型，之前写错在block用了扩展（x4)而非缩减(//2)结果准确率高达0.65，且参数量依然比shufflenet第一位数（或许是LeakyReLU的关系？）
 # ShuffleNetV2
 ### 一、改进点
 #### 1.基于shufflev1的不足提出四个准则：
@@ -348,6 +350,8 @@ shuffle操作换位置。
 - 用于空间下采样单元，不增加**通道分割**操作；  
 左边结构改变，最后特征图空间大小减半，通道数翻倍。 
 ![Alt](https://i-blog.csdnimg.cn/blog_migrate/d0d41f274fdf3ac46a6e35223af00676.png)
+### 二、补充
+#### 1.ShuffleNetV2并未用倒残差结构，pytorch官方虽然给block命名为InvertedResidual,但实现的还是跟原文中一样的结构。
 # 数据增强方法
 ### 1.mixup
 - 对两个样本-标签数据对按比例相加后形成新的样本-标签数据对。
