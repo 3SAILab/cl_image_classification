@@ -352,6 +352,16 @@ shuffle操作换位置。
 ![Alt](https://i-blog.csdnimg.cn/blog_migrate/d0d41f274fdf3ac46a6e35223af00676.png)
 ### 二、补充
 #### 1.ShuffleNetV2并未用倒残差结构，pytorch官方虽然给block命名为InvertedResidual,但实现的还是跟原文中一样的结构。
+# CBAM
+### 一、网络架构
+![Alt](https://i-blog.csdnimg.cn/blog_migrate/3a7b95bb0632d5ce906bf8598d958f77.jpeg)  
+注意力机制的两个模块，CBAM是一个可插入任意网络的模块。
+### 二、重点
+#### 1.注意力模块  
+- 先用通道注意力：  
+做平均池化和最大池化，将空间维度变成1x1，最后做sigmoid激活获得权重（1个值）乘回原特征图。
+- 后用空间注意力：  
+在通道方向上做平均池化和最大池化（也就是算空间上某个点在所有通道中的平均值和最大值），得到两个1channel的特征图，拼接两个特征图，最后用一个7x7卷积变为1channel的权重特征图，然后乘回原特征图的每一个通道。
 # 数据增强方法
 ### 1.mixup
 - 对两个样本-标签数据对按比例相加后形成新的样本-标签数据对。
