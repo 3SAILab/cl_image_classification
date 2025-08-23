@@ -375,6 +375,30 @@ MBConv模块
 #### 2.基于MobileNetV2的基础架构（EfficientNet-B0）
 - 使用MBConv模块，包含倒残差结构、深度可分离卷积、引入SE模块
 - 这是最基础的模型，后面延伸出一系列B1-B7。
+# MobileNetV3
+### 一、改进点
+#### 1.引入h-swish和h-sigmoid
+- h-swish公式：  
+$$
+\text{h-swish}(x) = x \cdot \frac{\text{ReLU6}(x + 3)}{6}
+$$  
+从公式可以看出h-swish计算简单，跟ReLU一样能缓解梯度消失的问题，且扩大了范围，非单调性也提升了表达能力（能够拟合更复杂的曲线）
+![Alt](https://i-blog.csdnimg.cn/blog_migrate/ceeaaa427996ceaedec53a7fa19afd30.png)
+- h-sigmoid公式：  
+$$
+\text{h-sigmoid}(x) = \begin{cases}
+0 & \text{if } x \leq -2.5 \\
+0.2x + 0.5 & \text{if } -2.5 < x < 2.5 \\
+1 & \text{if } x \geq 2.5
+\end{cases}
+$$  
+近似sigmoid但计算简单。
+#### 2.加入SE模块（注意力机制）
+- 在尽量不增加开销的情况下，提升模型对关键特征的关注度，从而提升模型性能。
+#### 3.重新设计耗时层结构
+- 减少第一个卷积层的卷积核个数
+- 精简Last stage  
+![Alt](https://i-blog.csdnimg.cn/blog_migrate/98473d61a422599e03c7597aadaa6fe3.jpeg)
 # 数据增强方法
 ### 1.mixup
 - 对两个样本-标签数据对按比例相加后形成新的样本-标签数据对。
