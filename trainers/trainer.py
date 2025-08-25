@@ -13,6 +13,7 @@ import sys
 from tqdm import tqdm
 import torch.optim as optim
 from utils.visualization import plot_training_curves
+from utils.metrics import ConfusionMatrix
 import yaml
 import numpy as np
 import random
@@ -38,6 +39,7 @@ def trainer(device, model, log_name, need_seed=False, alpha=0.4):
     train_config = config['train']
     batch_size = train_config.get('batch_size')
     epochs = train_config.get('epochs')
+    num_classes = train_config.get('num_classes')
 
     # 是否固定种子
     if need_seed:
@@ -139,6 +141,12 @@ def trainer(device, model, log_name, need_seed=False, alpha=0.4):
                                                                        epochs,
                                                                        loss)
 
+        # 初始化混淆矩阵
+        if log_name[-1] == '1':
+            labels = [label for _, label in cla_dict.items()]
+            confusion = ConfusionMatrix(num_classes, labels, normalize=True, batch_size=batch_size, log_name=log_name)
+
+        # 验证
         net.eval()
         val_acc = 0.0
         val_l = 0.0
@@ -150,6 +158,8 @@ def trainer(device, model, log_name, need_seed=False, alpha=0.4):
                 val_l += loss_function(outputs, labels.to(device)).item()
                 predict_y = torch.max(outputs, dim=1)[1]
                 val_acc += torch.eq(predict_y, labels.to(device)).sum().item()
+                if log_name[-1] == '1':
+                    confusion.update(predict_y.to("cpu").numpy(), labels.to("cpu").numpy())
 
         epoch_train_end = time.perf_counter()
         val_accuracy = val_acc / val_num
@@ -167,6 +177,10 @@ def trainer(device, model, log_name, need_seed=False, alpha=0.4):
         if best_acc < val_accuracy:
             best_acc = val_accuracy
             torch.save(net.state_dict(), save_path)
+
+        # 绘制混淆矩阵
+        if log_name[-1] == '1':
+            confusion.plot()
     
     total_train_end = time.perf_counter()
     print("Finished Training.")
