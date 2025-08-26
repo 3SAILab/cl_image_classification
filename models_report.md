@@ -446,6 +446,24 @@ $$
 k = \psi(C) = \left| \frac{\log_2(C)}{\gamma} + \frac{b}{\gamma} \right|_{odd} 
 $$  
 odd表示取它的最近奇数。
+# GhostNetV1
+### 一、网络架构
+![Alt](https://i-blog.csdnimg.cn/direct/23a8108c569a472186f665b3f72642ea.png)  
+Ghost module  
+![Alt](https://i-blog.csdnimg.cn/direct/f5064ee876e247658f5bc20b27267047.png)  
+Ghost bottleneck  
+![Alt](https://i-blog.csdnimg.cn/direct/88bc7aa9dc3b420fa632136384e97bb3.png)  
+配置
+### 二、重点
+#### 1.Ghost模块（廉价操作生成冗余特征）
+- 传统的CNN中间特征图存在大量冗余特征，即重复或近似信息多，这些可以通过廉价操作近似生成，以此提出了Ghost模块。
+- 主要分两步：  
+①少量标准卷积生成m个“本源”特征图  
+②对每个特征图用s个线性操作（文中用深度卷积，最后一个是恒等映射）  
+最终形成m·s个特征图。
+#### 2.主要架构
+- Ghost瓶颈块堆叠两个Ghost模块，stride=1/2做不同处理，如图。
+- 主体参考MobielNetV3,其中瓶颈块替换成Ghost瓶颈。
 # 数据增强方法
 ### 1.mixup
 - 对两个样本-标签数据对按比例相加后形成新的样本-标签数据对。
