@@ -9,6 +9,7 @@ import torch
 import torch.nn as nn
 from models.squeezeexcitation import SqueezeExcitation
 from models.cbam import CBAM
+from models.eca import ECA
 
 def conv3x3(in_channels, out_channels, stride=1, groups=1):
     return nn.Conv2d(
@@ -78,7 +79,8 @@ class Bottleneck(nn.Module):
         groups=1, 
         base_width=64,
         with_se = False,
-        with_cbam = False
+        with_cbam = False,
+        with_eca = False
         ):
         super(Bottleneck,self).__init__()
         width = int(out_channel * (base_width / 64.0)) * groups
@@ -100,6 +102,11 @@ class Bottleneck(nn.Module):
             self.cbam = CBAM(out_channel*self.expansion)
         else:
             self.cbam = None
+
+        if with_eca:
+            self.eca = ECA(out_channel*self.expansion)
+        else:
+            self.eca = None
 
         self.downsample = downsample
         self.stride=stride
@@ -126,6 +133,9 @@ class Bottleneck(nn.Module):
         if self.cbam:
             out = self.cbam(out)
 
+        if self.eca:
+            out = self.eca(out)
+
         out += indentity
         out = self.relu(out)
 
@@ -141,7 +151,8 @@ class ResNet(nn.Module):
         groups=1, 
         width_per_group=64,
         with_se=False,
-        with_cbam=False
+        with_cbam=False,
+        with_eca=False
         ): 
         super(ResNet, self).__init__()
         self.include_top = include_top
@@ -150,6 +161,7 @@ class ResNet(nn.Module):
         self.groups = groups
         self.se = with_se
         self.cbam = with_cbam
+        self.eca = with_eca
 
         self.conv1 = nn.Conv2d(3, self.in_channel, kernel_size=7, stride=2,
                                padding=3, bias=False)
@@ -187,7 +199,7 @@ class ResNet(nn.Module):
         for _ in range(1, block_num):
             layers.append(
                 block(
-                    self.in_channel, channel, groups=self.groups, base_width=self.base_width, with_se=self.se, with_cbam=self.cbam
+                    self.in_channel, channel, groups=self.groups, base_width=self.base_width, with_se=self.se, with_cbam=self.cbam, with_eca=self.eca
                     )
             )
 
@@ -236,3 +248,6 @@ def se_resnet50(model_config):
 
 def cbam_resnet50(model_config):
     return ResNet(Bottleneck, [3, 4, 6, 3], num_classes=model_config.get('num_classes'), with_cbam=model_config.get("with_cbam"))
+
+def eca_resnet50(model_config):
+    return ResNet(Bottleneck, [3, 4, 6, 3], num_classes=model_config.get('num_classes'), with_eca=model_config.get("with_eca"))
