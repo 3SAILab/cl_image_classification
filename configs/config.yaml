@@ -104,6 +104,10 @@ cbam_resnet50:
   num_classes: 20
   with_cbam: True
 
+eca_resnet50:
+  num_classes: 20
+  with_eca: True
+
 efficientnet_b0:
   num_classes: 20
 
@@ -119,6 +123,12 @@ mobilenetv3_small:
   reduced_tail: False
 
 hardnet68:
+  num_classes: 20
+
+hardnet85:
+  num_classes: 20
+
+ghostnetv1:
   num_classes: 20
 
 train:
