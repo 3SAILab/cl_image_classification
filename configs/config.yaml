@@ -131,6 +131,9 @@ hardnet85:
 ghostnetv1:
   num_classes: 20
 
+resnest50:
+  num_classes: 20
+
 train:
   seed: 42
   batch_size: 32
