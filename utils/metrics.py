@@ -16,7 +16,7 @@ class ConfusionMatrix(object):
         self.save_path_matrix = "results/{}_matrix.png".format(log_name)
         self.save_path_csv = "results/model_classifier_report.csv"
 
-    # 更新数据（每批次处理一次）
+    # 更新数据
     def update(self, preds, labels):
         for p, t in zip(preds, labels):
             self.matrix[p, t] += 1
@@ -98,9 +98,9 @@ class ConfusionMatrix(object):
         plt.figure(figsize=fig_size)
 
         if normalize:
-            row_sums = matrix.sum(axis=1)
-            row_sums[row_sums == 0] = 1e-8
-            matrix = matrix.astype('float') / matrix.sum(axis=1)[:, np.newaxis]
+            row_sums = matrix.sum(axis=1)[:, np.newaxis]
+            row_sums[row_sums == 0] = 1
+            matrix = matrix.astype('float') / row_sums
             np.set_printoptions(formatter={'float': '{: 0.2f}'.format})
         plt.imshow(matrix, interpolation='nearest', cmap=cmap)
         plt.title(title)

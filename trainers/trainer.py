@@ -178,9 +178,9 @@ def trainer(device, model, log_name, need_seed=False, alpha=0.4):
             best_acc = val_accuracy
             torch.save(net.state_dict(), save_path)
 
-        # 绘制混淆矩阵
-        if log_name[-1] == '1':
-            confusion.plot()
+            # 绘制当前最佳模型混淆矩阵
+            if log_name[-1] == '1':
+                confusion.plot()
     
     total_train_end = time.perf_counter()
     print("Finished Training.")
