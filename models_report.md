@@ -464,6 +464,19 @@ Ghost bottleneck
 #### 2.主要架构
 - Ghost瓶颈块堆叠两个Ghost模块，stride=1/2做不同处理，如图。
 - 主体参考MobielNetV3,其中瓶颈块替换成Ghost瓶颈。
+# ResNeSt
+### 一、网络架构
+![Alt](https://i-blog.csdnimg.cn/direct/affb47c912a54c6e9ff2a735fa7ef099.png)
+### 二、重点
+#### 1.split-attention-block(分裂注意力模块)
+- ResNeXt分组卷积，缺失跨通道相关性；SE通道注意力机制，忽略空间特征；SK让网络自适应不同感受野的卷积核，但多尺度特征融合不够灵活，推理慢。因此结合这几个的优点来改进。
+- 步骤：  
+①split分裂：输入特征分成多个分支，进行独立卷积。  
+②transform变换：每个分支输出特征。  
+③aggregate聚合：将所有分支的特征按元素相加，得到聚合特征。  
+④attention注意力：对聚合后的特征进行全局平均池化->全连接层->生成每个分支注意力权重。  
+⑤distribute分发：注意力权重（一个）分配回每个分支原始输出加权。  
+⑥end:各分支特征相加融合输出。
 # 数据增强方法
 ### 1.mixup
 - 对两个样本-标签数据对按比例相加后形成新的样本-标签数据对。
