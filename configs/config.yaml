@@ -90,7 +90,39 @@ MobileNetV2:
   width_mult: 1.0
   round_nearest: 8
 
+EFFNet:
+  num_classes: 20
+
+ShuffleNetV1:
+  num_classes: 20
+  groups: 3
+
+shufflenetv2_x2_0:
+  num_classes: 20
+
+cbam_resnet50:
+  num_classes: 20
+  with_cbam: True
+
+efficientnet_b0:
+  num_classes: 20
+
+efficientnet_b3:
+  num_classes: 20
+
+mobilenetv3_large:
+  num_classes: 20
+  reduced_tail: False
+
+mobilenetv3_small:
+  num_classes: 20
+  reduced_tail: False
+
+hardnet68:
+  num_classes: 20
+
 train:
   seed: 42
   batch_size: 32
   epochs: 50
+  num_classes: 20
