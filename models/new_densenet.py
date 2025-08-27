@@ -5,13 +5,29 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_dir) 
 sys.path.append(project_root)
 
-from models.squeezeexcitation import SqueezeExcitation
+from models.resnest import SplitAttn
 
 import torch
 import torch.nn as nn 
 from torch import Tensor
 from collections import OrderedDict
 import torch.nn.functional as F
+
+# 深度可分离卷积
+class SeparableConv2d(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size=1, stride=1, padding=0, dilation=1, bias=False):
+        super(SeparableConv2d, self).__init__()
+
+        self.conv1 = nn.Conv2d(in_channels, in_channels, kernel_size,
+                               stride, padding, dilation, groups=in_channels, bias=bias)
+        self.pointwise = nn.Conv2d(in_channels, out_channels, kernel_size=1,
+                                   stride=1, padding=0, dilation=1, groups=1, bias=bias)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.pointwise(x)
+        return x
+
 
 # 密集层
 class DenseLayer(nn.Module):
@@ -26,14 +42,25 @@ class DenseLayer(nn.Module):
         self.relu1 = nn.LeakyReLU(inplace=True)
         self.conv1 = nn.Conv2d(num_input_features, bn_size*growth_rate,
                                kernel_size=1, stride=1, bias=False)
-        self.bn2 = nn.BatchNorm2d(bn_size*growth_rate)
-        self.relu2 = nn.LeakyReLU(inplace=True)
-        self.conv2 = nn.Conv2d(bn_size*growth_rate, growth_rate,
-                               kernel_size=3, stride=1, padding=1, bias=False)
-        
-        self.dropout = nn.Dropout(p=0)
 
-        self.se = SqueezeExcitation(growth_rate, growth_rate // 16)
+        self.branch0 = nn.Sequential(
+            nn.BatchNorm2d(bn_size*growth_rate),
+            nn.LeakyReLU(inplace=True),
+            SeparableConv2d(bn_size*growth_rate, growth_rate // 2,
+                               kernel_size=3, stride=1, padding=1, bias=False)
+        )
+
+        self.branch1 = nn.Sequential(
+            nn.BatchNorm2d(bn_size*growth_rate),
+            nn.LeakyReLU(inplace=True),
+            nn.Conv2d(bn_size*growth_rate, growth_rate // 2,
+                         kernel_size=(1, 3), stride=1, padding=(0, 1)),
+            nn.BatchNorm2d(growth_rate // 2),
+            nn.LeakyReLU(inplace=True),
+            nn.Conv2d(growth_rate // 2, growth_rate // 2,
+                         kernel_size=(3, 1), stride=1, padding=(1, 0))
+        )
+
 
     def bn_function(self, inputs):
         concated_features = torch.cat(inputs, 1)
@@ -48,9 +75,11 @@ class DenseLayer(nn.Module):
 
         bottleneck_output = self.bn_function(prev_features)
 
-        new_features = self.conv2(self.relu2(self.bn2(bottleneck_output)))
-        new_features = self.dropout(new_features)
-        new_features = self.se(new_features)
+        new_features1 = self.branch0(bottleneck_output)
+        new_features2 = self.branch1(bottleneck_output)
+
+        new_features = torch.cat((new_features1, new_features2), 1)
+
         return new_features
 
 # 密集块
@@ -74,11 +103,13 @@ class DenseBlock(nn.ModuleDict):
 class Transition(nn.Sequential):
     def __init__(self, num_input_features, num_output_features):
         super(Transition, self).__init__()
+
         self.bn = nn.BatchNorm2d(num_input_features)
         self.relu = nn.LeakyReLU(inplace=True)
         self.conv = nn.Conv2d(num_input_features, num_output_features, kernel_size=1,
                               stride=1, bias=False)
-        self.avgpool = nn.AvgPool2d(kernel_size=2, stride=2)
+        self.attn = SplitAttn(num_output_features, num_output_features, kernel_size=3, stride=1, padding=1, groups=16, bias=False, radix=2)
+        self.avgpool = nn.AvgPool2d(kernel_size=2, stride=2) 
 
 
 class DenseNet(nn.Module):
