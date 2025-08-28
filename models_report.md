@@ -477,6 +477,70 @@ Ghost bottleneck
 ④attention注意力：对聚合后的特征进行全局平均池化->全连接层->生成每个分支注意力权重。  
 ⑤distribute分发：注意力权重（一个）分配回每个分支原始输出加权。  
 ⑥end:各分支特征相加融合输出。
+# Transformer（简单版理解）
+### 一、网络架构
+![Alt](https://i-blog.csdnimg.cn/blog_migrate/50b27b7b0dfa4e53d66acd930cf0c103.png)  
+左编码器，右解码器（多了掩码）
+### 二、重点
+#### 1.自注意力机制(self-Attention)
+- 目的：让序列中的每个位置的词都能直接关注其他所有词的位置，计算它们的相关性。
+- 优点：RNN串行化处理，太长了就会忘记前面的；它可以并行化，长距离依赖建模强。
+- 公式：  
+$$
+Attention(Q, K, V)=Softmax(\frac{QK^T}{\sqrt{d_k}})V
+$$  
+Q:当前词的查询向量（关注与其他词的关系）  
+K：其他词的键向量（特征标识）  
+V：其他词的值向量（真实值）  
+公式的简单理解：当前词计算与其他词的相关性，归一化生成权重，最后乘上真实值，得到包含与其他词关系的输出。  
+公式的细节理解：假设输入3个token，每个维度是4；生成wq,wk,wv矩阵，大小为4xdk，这个dk在单头通常=输入维度；与输入相乘得到QKV，3xdk；QK计算并经过softmax得到3x3矩阵；和V相乘得到3xdk矩阵，即最终的输出。  
+<img src="https://i-blog.csdnimg.cn/blog_migrate/6d211bf03f22999ab2da2165b38d3c24.png" width="200" height="200" />
+#### 2.多头注意力机制（Multi-Head Attention)
+- 多个自注意力并行，学习不同的注意力模式。
+- 此时dk根据想要的self-Attention数量决定，然后在维度上拼接,最后进行一次线性变换。  
+<img src="https://i-blog.csdnimg.cn/blog_migrate/8f9ea8ba2c55dd2784675a19130a7da9.png" width="200" height="200" />
+
+#### 3.位置编码（PE）  
+- 目的：为了利用句子中单词的位置信息，它不像RNN是串行处理的，因此需要加入额外的位置编码来表示。
+- 最终输出x=单词embedding+位置embedding，注意是add而非concat。
+- 公式：  
+$$
+PE_{(pos, 2i)} = \sin\left(\frac{pos}{10000^{\frac{2i}{d_{\text{model}}}}}\right)
+$$
+$$
+PE_{(pos, 2i+1)} = \cos\left(\frac{pos}{10000^{\frac{2i}{d_{\text{model}}}}}\right)
+$$  
+pos:词在序列中的位置  
+i:维度索引（对应位置embedding向量的第i个分量）  
+$d_{model}$：模型的嵌入维度  
+对于一个位置编码的向量：偶数维度用sin，奇数维度用cos  
+公式的理解：  
+①为什么用周期函数？每一个token要唯一性表示，如果用1，2，3...句子长度不确定，遇到更长的直接爆炸；如果像01编码那样设置内部向量的值，不同位置的token不是连续的，对后续位置利用十分不友好；因此用了有界又连续的周期函数。  
+②为什么周期函数内部这么计算？要让i小的时候震荡快，区分相邻位置，i大的时候震荡慢，区分远距离位置，因此用$\frac{1}{a^{\frac{2i}{d_{\text{model}}}}}$;至于用10000，是为了有更大的变化范围来表示不同的token位置信息，当token值很大的时候有利于区分不同位置。  
+③为什么用sin和cos？使不同位置的向量可以通过线性转换得到。
+#### 4.前馈神经网络（FFN）
+- 一个两层的全连接层，第一层后有激活函数，第二层没有，这两层在多头注意力后。
+- 注意力机制主要是线性变换，FFN引入非线性函数能够帮助拟合更复杂的特征。
+#### 5.掩码（Mask）
+#### 6.编码器-解码器（Encoder-Decoder）
+# ViT
+### 0.前期工作
+#### 1.做了什么，为什么做？
+- 目前CV领域CNN仍占主导，而transformer架构性能强大，CV领域并未实现纯transformer架构，因此希望构建一个纯transformer架构处理序列图像的模型。
+#### 2.亮点
+- Patch embedding
+- transformer Encoder
+- MLP Head（最终用于分类的层结构）
+#### 3.搞懂
+- embedding层什么作用，如何实现？  
+目的：将图像转换成适合Transformer处理的向量序列。  
+NLP句子如何处理：分词为基本单元token->查表变向量->加入CLS->加入位置编码  
+CV图像如何处理：切分成n个patch->线性变换变向量->加入CLS->加入位置编码
+- 为什么需要位置编码，如何实现？
+- [CLS] token为什么需要设计它，如何实现？  
+transformer输入是序列，输出也是
+- transformer Encoder架构是什么，输出是什么
+- 最终用于分类的层结构是什么？
 # 数据增强方法
 ### 1.mixup
 - 对两个样本-标签数据对按比例相加后形成新的样本-标签数据对。
