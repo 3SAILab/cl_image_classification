@@ -19,3 +19,5 @@ __pycache__/
 #忽略数据集，权重保存文件
 data/
 checkpoints/
+#忽略无关文件
+experiment.md
