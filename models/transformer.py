@@ -1,112 +1,55 @@
-import math, torch, copy
-
-from torch import nn
-import torch.nn.functional as F
-
-from labml import tracker
 import numpy as np
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import math, copy
+from torch.autograd import Variable
 
-# 多头注意力模块的准备
-class PrepareForMultiHeadAttention(nn.Module):
-    def __init__(
-        self,
-        d_model,  # 输入token维度
-        heads,    # 头数
-        d_k,      # 每个头部的维度
-        bias):
-        super().__init__()
+# 自注意力机制
+def attention(query, key, value, mask=None, dropout=None):
+    # query.shape=key.shape=valie.shape=[batch_size, h, seq_len, d_k]
+    d_k = query.size(-1)
+    # 计算注意力分数 scores.shape=[batch_size, h, seq_len, seq_len]
+    # transpose(-2, -1)表示交换key的倒数第一和倒数第二个维度，即实现转置
+    scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(d_k)
+    # 用爱因斯坦表示法 scores = torch.einsum('bhqd,bhkd->bhqk', query, key) / math.sqrt(d_k)
+    if mask is not None:
+        # mask.shape=[batch_size, h, seq_len, seq_len],这里的是padding mask，将填充的0值设为负无穷
+        scores = scores.masked_fill(mask == 0, -1e9)
+    p_attn = F.softmax(scores, dim = -1)
+    if dropout is not None:
+        p_attn = dropout(p_attn)
+    # 注意力权重与V加权求和 [batch_size, h, seq_len, d_k]
+    return torch.matmul(p_attn, value), p_attn
+    # 用爱因斯坦表示法 return torch.einsum('bhqk,bhvd->bhkd', p_attn, value), p_attn
 
-        self.linear = nn.Linear(d_model, heads * d_k, bias=bias)
-        self.heads = heads
-        self.d_k = d_k
-    
-    def forward(self, x):
-        # 输入有[seq_len, batch_size, d_model] or [batch_size, d_model], 这里是保留除最后一维的x
-        head_shape = x.shape[:-1]
-        # 线性变换，实现最后一维的（因为前面的保留了）
-        x = self.linear(x)
-        x = x.view(*head_shape, self.heads, self.d_k)
-        return x
-
-# 多头注意力模块
-class MultiHeadAttention(nn.Module):
-    def __init__(
-        self,
-        heads,
-        d_model,
-        dropout_prob=0.1,
-        bias=True
-    ):
-        super().__init__()
-
-        self.d_k = d_model // heads
-        self.heads = heads
-
-        # 初始化QKV
-        self.query = PrepareForMultiHeadAttention(d_model, heads, self.d_k, bias=bias)
-        self.key = PrepareForMultiHeadAttention(d_model, heads, self.d_k, bias=bias)
-        self.value = PrepareForMultiHeadAttention(d_model, heads, self.d_k, bias=bias)
-
-        self.softmax = nn.Softmax(dim=1)
-
-        self.output = nn.Linear(d_model, d_model)
-
-        self.dropout = nn.Dropout(dropout_prob)
-
-        self.scale = 1 / math.sqrt(self.d_k)
-
+# 多头注意力机制
+class MultiHeadedAttention(nn.Module):
+    def __init__(self, h, d_model, dropout=0.1):
+        super(MultiHeadedAttention, self).__init__()
+        assert d_model % h == 0
+        self.d_k = d_model // h
+        self.h = h
+        self.linears = clones(nn.Linear(d_model, d_model), 4)
         self.attn = None
-
-    def get_scores(self, query, key):
-        # i是query位置，b是batch, h是head, d是d_k, j是key位置
-        return torch.einsum('ibhd,jbhd->ijbh', query, key)
-
-    def prepare_mask(self, mask, query_shape, key_shape):
-        # [seq_len_q, seq_len_k, batch_size]
-        assert mask.shape[0] == 1 or mask.shape[0] == query_shape[0]
-        assert mask.shape[1] == key_shape[0]
-        assert mask.shape[2] == 1 or mask.shape[2] == query_shape[1]
-
-        # 增加一个维度以便与QK^T匹配
-        mask = mask.unsqueeze(-1)
-        return mask
-
-    def forward(self, *,
-                query,
-                key,
-                value,
-                mask):
-        # 传入的是wq,wk,wv [seq_len, batch_size, d_model]
-        seq_len, batch_size, _ = query.shape
-
+        self.dropout = nn.Dropout(p=dropout)
+    
+    def forward(self, query, key, value, mask=None):
         if mask is not None:
-            mask = self.prepare_mask(mask, query.shape, key.shape)
-        
-        # shape changed -> [seq_len, batch_size, heads, d_k]
-        query = self.query(query)
-        key = self.key(key)
-        value = self.value(value)
+            # mask.shape changed [batch_size, 1(new), seq_len, seq_len]
+            mask = mask.unsqueeze(1)
+        nbatches = query.size(0)
 
-        # shape changed -> [seq_len, seq_len, batch_size, heads]
-        scores = self.get_scores(query, key)
-        scores *= self.scale
+        # 构造QKV [batch_size, h, seq_len, d_k]
+        query, key, value = [l(x).view(nbatches, -1, self.h, self.d_k).transpose(1, 2) for l, x in zip(self.linears, (query, key, value))]
 
-        if mask is not None:
-            scores = scores.masked_fill(mask == 0, float('-inf'))
-        
-        attn = self.softmax(scores)
-        tracker.debug('attn', attn)
-        attn = self.dropout(attn)
+        # 自注意力计算
+        x, self.attn = attention(query, key, value, mask=mask, dropout=self.dropout)
 
-        # 此时[seq_len, batch, heads, d_k]
-        x = torch.einsum("ijbh,jbhd->ibhd", attn, value)
-        
-        # 保存注意力权重
-        self.attn = attn.detach()
-
-        # 将heads与d_k合并,最终[seq_len, batch_size, d_model]
-        x = x.reshape(seq_len, batch_size, -1)
-        return self.output(x)
+        # 多头拼接 [batch_size, seq_len, d_model(h*d_k)]
+        x = x.transpose(1, 2).contiguous().view(nbatches, -1, self.h * self.d_k)
+        # 线性投影
+        return self.linears[-1](x)
 
 # 前馈神经网络
 class PositionwiseFeedForward(nn.Module):
@@ -117,6 +60,7 @@ class PositionwiseFeedForward(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
+        # 线性层->relu->drop->线性层
         return self.w_2(self.dropout(F.relu(self.w_1(x))))
 
 # 词嵌入
@@ -134,38 +78,21 @@ class Embeddings(nn.Module):
 
 # 位置编码
 class PositionalEncoding(nn.Module):
-    def __init__(
-        self,
-        d_model,
-        dropout_prob,
-        max_len=5000
-    ):
-        super().__init__()
+    def __init__(self, d_model, dropout, max_len=5000):
+        super(PositionalEncoding, self).__init__()
+        self.dropout = nn.Dropout(p=dropout)
 
-        self.dropout = nn.Dropout(dropout_prob)
-
-        # 生成位置编码表并辨识它并非可训练参数
-        self.register_buffer("positional_encodings", self.get_positional_encoding(d_model, max_len), False)
-
-    def get_positional_encoding(d_model, max_len=5000):
-        encodings = torch.zeros(max_len, d_model)
-        # position.shape=[max_len, 1]
-        position = torch.arange(0, max_len, dtype=torch.float32).unsqueeze(1)
-        two_i = torch.arange(0, d_model, 2, dtype=torch.float32)
-        div_term = torch.exp(two_i * -(math.log(10000.0) / d_model))
-        encodings[:, 0::2] = torch.sin(position * div_term)
-        encodings[:, 1::2] = torch.cos(position * div_term)
-        # encodings.shape=[max_len, 1, d_model]
-        encodings = encodings.unsqueeze(1).requires_grad_(False)
-
-        return encodings
+        pe = torch.zeros(max_len, d_model)
+        position = torch.arange(0, max_len).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2) * -(math.log(10000.0) / d_model))
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        pe = pe.unsqueeze(0)
+        self.register_buffer('pe', pe)
 
     def forward(self, x):
-        # x.shape=[seq_len, batch_size, d_model]
-        pe = self.positional_encodings[:x.shape[0]].detach().requires_grad_(False)
-        x = x + pe
-        x = self.dropout(x)
-        return x
+        x = x + Variable(self.pe[:, :x.size(1)], requires_grad=False)
+        return self.dropout(x)
 
 # 堆叠模块
 def clones(module, N):
@@ -296,7 +223,7 @@ def make_model(src_vocab, tgt_vocab, N=6,
                d_model=512, d_ff=2048, h=8, dropout=0.1):
     # 避免组件共享参数
     c = copy.deepcopy
-    attn = MultiHeadAttention(h, d_model)
+    attn = MultiHeadedAttention(h, d_model)
     ff = PositionwiseFeedForward(d_model, d_ff, dropout)
     position = PositionalEncoding(d_model, dropout)
     model = EncoderDecoder(
