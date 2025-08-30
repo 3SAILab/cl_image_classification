@@ -48,6 +48,7 @@ class MultiHeadedAttention(nn.Module):
 
         # 多头拼接 [batch_size, seq_len, d_model(h*d_k)]
         x = x.transpose(1, 2).contiguous().view(nbatches, -1, self.h * self.d_k)
+        # 简洁写法 x = torch.einsum('bhld->blhd', x).reshape(nbatches, -1, self.h * self.d_k)
         # 线性投影
         return self.linears[-1](x)
 
@@ -208,7 +209,11 @@ class EncoderDecoder(nn.Module):
         self.tgt_embed = tgt_embed
         self.generator = generator
         
-    def forward(self, src, tgt, src_mask, tgt_mask):
+    def forward(self, src, tgt):
+        src_mask = (src != 0).unsqueeze(1)
+        tgt_pad_mask = (tgt != 0).unsqueeze(1)
+        tgt_sub_mask = subsequent_mask(tgt.size(1)).type_as(tgt_pad_mask)
+        tgt_mask = tgt_pad_mask & tgt_sub_mask
         return self.decode(self.encode(src, src_mask), src_mask,
                             tgt, tgt_mask)
     
