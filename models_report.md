@@ -265,9 +265,10 @@ $ K $：总类别数
 ### 二、重点
 #### 1.深度可分离卷积
 - Xception注重于用它提升表达能力，只替换了inception模块，而该模型注重于用它降低参数量和计算量，使模型更加轻量化。  
-普通卷积参数：$$D_K \cdot D_K \cdot M \cdot N \cdot D_F \cdot D_F$$  
-深度可分离卷积参数：$$D_K \cdot D_K \cdot M \cdot D_F \cdot D_F + M \cdot N \cdot D_F \cdot D_F$$  
-两者对比：$\frac{D_K \cdot D_K \cdot M \cdot D_F \cdot D_F + M \cdot N \cdot D_F \cdot D_F}{D_K \cdot D_K \cdot M \cdot N \cdot D_F \cdot D_F}=\frac{1}{N}+\frac{1}{D_K^2}$
+普通卷积参数：$D_K \cdot D_K \cdot M \cdot N \cdot D_F \cdot D_F$  
+深度可分离卷积参数：$D_K \cdot D_K \cdot M \cdot D_F \cdot D_F + M \cdot N \cdot D_F \cdot D_F$  
+两者对比：  
+$\frac{D_K \cdot D_K \cdot M \cdot D_F \cdot D_F + M \cdot N \cdot D_F \cdot D_F}{D_K \cdot D_K \cdot M \cdot N \cdot D_F \cdot D_F}=\frac{1}{N}+\frac{1}{D_K^2}$
 #### 2.增加两个参数$\alpha$,$\rho$
 - 宽度乘数$\alpha$：每层均匀瘦化一个网络，取(0,1]，通常取1,0.75,0.25,0.5  
 分辨率乘数$\rho$: 缩减输入图像及内部特征图分辨率，取(0,1]，通常设置输入分辨率为224，192，160，128  
@@ -437,14 +438,14 @@ $C(l)=k*m^n$
 #### 3.自适应卷积核大小
 - 提出一个计算k的公式，避免繁琐的手动调参。
 - 先定义C与k的非线性关系：  
-$$
+$
 C = 2^{(\gamma \cdot k - b)}
-$$  
+$   
 其中$\gamma=2$,$b=1$为实验确定的固定参数。  
 接着提出公式：  
-$$ 
+$ 
 k = \psi(C) = \left| \frac{\log_2(C)}{\gamma} + \frac{b}{\gamma} \right|_{odd} 
-$$  
+$  
 odd表示取它的最近奇数。
 # GhostNetV1
 ### 一、网络架构
@@ -487,15 +488,16 @@ Ghost bottleneck
 - 目的：让序列中的每个位置的词都能直接关注其他所有词的位置，计算它们的相关性。
 - 优点：RNN串行化处理，太长了就会忘记前面的；它可以并行化，长距离依赖建模强。
 - 公式：  
-$$
+$
 Attention(Q, K, V)=Softmax(\frac{QK^T}{\sqrt{d_k}})V
-$$  
+$  
 Q:当前词的查询向量（关注与其他词的关系）  
 K：其他词的键向量（特征标识）  
 V：其他词的值向量（真实值）  
 公式的简单理解：当前词计算与其他词的相关性，归一化生成权重，最后乘上真实值，得到包含与其他词关系的输出。  
 公式的细节理解：假设输入3个token，每个维度是4；生成wq,wk,wv矩阵，大小为4xdk，这个dk在单头通常=输入维度；与输入相乘得到QKV，3xdk；QK计算并经过softmax得到3x3矩阵；和V相乘得到3xdk矩阵，即最终的输出。  
 <img src="https://i-blog.csdnimg.cn/blog_migrate/6d211bf03f22999ab2da2165b38d3c24.png" width="200" height="200" />
+
 #### 2.多头注意力机制（Multi-Head Attention)
 - 多个自注意力并行，学习不同的注意力模式。
 - 此时dk根据想要的self-Attention数量决定，然后在维度上拼接,最后进行一次线性变换。  
@@ -505,12 +507,12 @@ V：其他词的值向量（真实值）
 - 目的：为了利用句子中单词的位置信息，它不像RNN是串行处理的，因此需要加入额外的位置编码来表示。
 - 最终输出x=单词embedding+位置embedding，注意是add而非concat。
 - 公式：  
-$$
+$
 PE_{(pos, 2i)} = \sin\left(\frac{pos}{10000^{\frac{2i}{d_{\text{model}}}}}\right)
-$$
-$$
+$  
+$
 PE_{(pos, 2i+1)} = \cos\left(\frac{pos}{10000^{\frac{2i}{d_{\text{model}}}}}\right)
-$$  
+$  
 pos:词在序列中的位置  
 i:维度索引（对应位置embedding向量的第i个分量）  
 $d_{model}$：模型的嵌入维度  
@@ -527,13 +529,13 @@ $d_{model}$：模型的嵌入维度
 - sequence mask:在解码器中使它无法看见未来信息（只能依赖于i之前的输出）。  
 解码器中预测是基于自回归机制，则一个词一个词的生成，但为了效率会把输入序列一次性喂给解码器，所以才需要防止解码器偷看。  
 如何做？生成一个上三角为$-\infty$的mask矩阵，其余位置是0，例如：  
-$$
+$
 \begin{bmatrix}
 0 & -\infty & -\infty \\
 0 & 0 & -\infty \\
 0 & 0 & 0 \\
 \end{bmatrix}
-$$  
+$  
 ps:两者都是在$QK^T$操作之后，送到softmax之前加上的。  
 ps:transformer2017原文中只提到了mask，即解码器中的sequence mask，关于两种掩码是在相关博客看的资料。
 #### 6.编码器-解码器（Encoder-Decoder）
@@ -562,13 +564,13 @@ transformer输入是序列，输出也是
 ### 1.mixup
 - 对两个样本-标签数据对按比例相加后形成新的样本-标签数据对。
 - 公式：  
-$$
+$
 \begin{aligned}
 \tilde{x} &= \lambda x_i + (1 - \lambda) x_j \\
 \tilde{y} &= \lambda y_i + (1 - \lambda) y_j \\
 \lambda &\sim \text{Beta}(\alpha, \alpha), \quad \alpha > 0
 \end{aligned}
-$$
+$
 其中x是输入向量，y是标签的one-hot编码，$\lambda$符合参数为$\alpha$的${Beta}$分布，$\alpha$越小，越接近原来的某一张图像，越大混合越均匀。
 - 在自己数据集上实验显示，它加强了模型的泛化能力，一些有过拟合现象的模型有了极大的改善，但准确率小幅度下降。
 ### 2.cutmix
