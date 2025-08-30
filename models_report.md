@@ -16,10 +16,12 @@
 - ps1: pytorch官方未实现，技术过于复杂通常不用。  
 #### 3.LRN局部响应归一化
 - 每个神经元的输出会被周围神经元的输出归一化，最终强的突出，弱的抑制。目的是防止过拟合，增强模型泛化能力。  
-公式：  
+公式：
+
 $$
 b_{x,y}^i = \frac{a_{x,y}^i}{\left(k+\alpha\sum_{j=\max(0,i-\frac{n}{2})}^{\min(N-1,i+\frac{n}{2})}(a_{x,y}^j)^2\right)^\beta}
 $$
+
 - ps:作用有限，基本不用，pytorch官方未实现  
 #### 4.重叠池化 $\color{green}{\checkmark}$
 - 用kernel_size=3,stride=2的池化层，使相邻池化区域重叠（因为kernel_size>stride），减少过拟合。  
@@ -54,7 +56,7 @@ $$
 $$
 F(i)=(F(i+1)-1)*Stride+Ksize
 $$
-$F(i)$为第$i$层感受野，$Stride$为第$i$层步距，$Ksize$为卷积核大小或池化核大小。 
+$F(i)$为第$i$层感受野, $Stride$ 为第i层步距，Ksize为卷积核大小或池化核大小。 
 ![Alt](https://i-blog.csdnimg.cn/direct/cc38347d64e94149bfc4b05e0b113eaf.png) 
 感受野计算是从最后一层往前推，看能在原图上“看”到多大范围。  
 Feature map: F=1   
@@ -135,7 +137,8 @@ Conv7x7(1): F=(1-1)x1+7=7
 更加节省计算成本，使用特征图尺寸为12x12到20x20，早期层表现较差。
 #### 2.引入LSR（标签平滑正则化）
 - 一种正则化手段，不让模型过度自信。
-- 公式：  
+- 公式：
+
 $$
 y_{\text{smooth}}(k) = 
 \begin{cases}
@@ -145,8 +148,8 @@ y_{\text{smooth}}(k) =
 $$
 
 其中：
-$ \epsilon $：平滑系数（如 $ 0.1 $）
-$ K $：总类别数
+ $ \epsilon $ ：平滑系数（如 $ 0.1 $ ）
+ $ K $ ：总类别数
 - 例如one-hot编码后[0,0,1,0],使用LSR后变成[0.025,0.025,0.9,0.025],可以较少过拟合，提升泛化能力。
 #### 3.多种inception模块
 - 根据不同层级的特征图优化
@@ -265,11 +268,11 @@ $ K $：总类别数
 ### 二、重点
 #### 1.深度可分离卷积
 - Xception注重于用它提升表达能力，只替换了inception模块，而该模型注重于用它降低参数量和计算量，使模型更加轻量化。  
-普通卷积参数：$D_K \cdot D_K \cdot M \cdot N \cdot D_F \cdot D_F$  
-深度可分离卷积参数：$D_K \cdot D_K \cdot M \cdot D_F \cdot D_F + M \cdot N \cdot D_F \cdot D_F$  
+普通卷积参数： $D_K \cdot D_K \cdot M \cdot N \cdot D_F \cdot D_F$  
+深度可分离卷积参数：$D_K \cdot D_K \cdot M \cdot D_F \cdot D_F + M \cdot N \cdot D_F \cdot D_F$   
 两者对比：  
 $\frac{D_K \cdot D_K \cdot M \cdot D_F \cdot D_F + M \cdot N \cdot D_F \cdot D_F}{D_K \cdot D_K \cdot M \cdot N \cdot D_F \cdot D_F}=\frac{1}{N}+\frac{1}{D_K^2}$
-#### 2.增加两个参数$\alpha$,$\rho$
+#### 2.增加两个参数 $\alpha$ , $\rho$ 
 - 宽度乘数$\alpha$：每层均匀瘦化一个网络，取(0,1]，通常取1,0.75,0.25,0.5  
 分辨率乘数$\rho$: 缩减输入图像及内部特征图分辨率，取(0,1]，通常设置输入分辨率为224，192，160，128  
 减少计算量：  
@@ -327,13 +330,15 @@ $\frac{D_K \cdot D_K \cdot \alpha M \cdot \rho D_F \cdot \rho D_F + \alpha M \cd
 - 首层也用了创新的卷积块，mobilenet和shufflenet认为它占比少不优化，但在小模型上它占比不少，优化能较少计算量。
 #### 3.使用Leaky ReLU  
 - 解决负输入零梯度的问题，扩大函数范围  
-公式：  
+公式：
+
 $$
 \text{LeakyReLU}(x) = \begin{cases}
 x, & \text{if } x \geq 0 \\
 \alpha x, & \text{if } x < 0
 \end{cases}
-$$  
+$$ 
+
 ![Alt](https://i-blog.csdnimg.cn/blog_migrate/a9983094bb6ff066bcdb281da3839be3.png)
 ### 三、补充
 #### 1.目前实验出来参数最少的模型，之前写错在block用了扩展（x4)而非缩减(//2)结果准确率高达0.65，且参数量依然比shufflenet第一位数（或许是LeakyReLU的关系？）
@@ -382,13 +387,16 @@ MBConv模块
 # MobileNetV3
 ### 一、改进点
 #### 1.引入h-swish和h-sigmoid
-- h-swish公式：  
+- h-swish公式：
+
 $$
 \text{h-swish}(x) = x \cdot \frac{\text{ReLU6}(x + 3)}{6}
-$$  
+$$ 
+
 从公式可以看出h-swish计算简单，跟ReLU一样能缓解梯度消失的问题，且扩大了范围，非单调性也提升了表达能力（能够拟合更复杂的曲线）
 ![Alt](https://i-blog.csdnimg.cn/blog_migrate/ceeaaa427996ceaedec53a7fa19afd30.png)
-- h-sigmoid公式：  
+- h-sigmoid公式：
+
 $$
 \text{h-sigmoid}(x) = \begin{cases}
 0 & \text{if } x \leq -2.5 \\
@@ -396,6 +404,7 @@ $$
 1 & \text{if } x \geq 2.5
 \end{cases}
 $$  
+
 近似sigmoid但计算简单。
 #### 2.加入SE模块（注意力机制）
 - 在尽量不增加开销的情况下，提升模型对关键特征的关注度，从而提升模型性能。
@@ -418,7 +427,7 @@ $$
 #### 2.通道平均加权
 - DenseNet还有一个问题是输入通道数过多但真正学习的太少，导致搬运过多数据却只进行了少量的计算。
 - 为了平衡输入/输出通道比例，设计了一个公式  
-$C(l)=k*m^n$  
+ $C(l)=k*m^n$   
 其中l是本层，k是基础增长率，m是一个大于1的常数，n由l决定。  
 简单理解就是输入通道数多的层输出通道数也多，但它们之间是平衡的。
 #### 3.倒置过度模块和瓶颈层优化
@@ -438,14 +447,10 @@ $C(l)=k*m^n$
 #### 3.自适应卷积核大小
 - 提出一个计算k的公式，避免繁琐的手动调参。
 - 先定义C与k的非线性关系：  
-$
-C = 2^{(\gamma \cdot k - b)}
-$   
+ $C = 2^{(\gamma \cdot k - b)}$    
 其中$\gamma=2$,$b=1$为实验确定的固定参数。  
 接着提出公式：  
-$ 
-k = \psi(C) = \left| \frac{\log_2(C)}{\gamma} + \frac{b}{\gamma} \right|_{odd} 
-$  
+ $ k = \psi(C) = \left| \frac{\log_2(C)}{\gamma} + \frac{b}{\gamma} \right|_{odd}$   
 odd表示取它的最近奇数。
 # GhostNetV1
 ### 一、网络架构
@@ -488,9 +493,7 @@ Ghost bottleneck
 - 目的：让序列中的每个位置的词都能直接关注其他所有词的位置，计算它们的相关性。
 - 优点：RNN串行化处理，太长了就会忘记前面的；它可以并行化，长距离依赖建模强。
 - 公式：  
-$
-Attention(Q, K, V)=Softmax(\frac{QK^T}{\sqrt{d_k}})V
-$  
+ $Attention(Q, K, V)=Softmax(\frac{QK^T}{\sqrt{d_k}})V$   
 Q:当前词的查询向量（关注与其他词的关系）  
 K：其他词的键向量（特征标识）  
 V：其他词的值向量（真实值）  
@@ -507,15 +510,11 @@ V：其他词的值向量（真实值）
 - 目的：为了利用句子中单词的位置信息，它不像RNN是串行处理的，因此需要加入额外的位置编码来表示。
 - 最终输出x=单词embedding+位置embedding，注意是add而非concat。
 - 公式：  
-$
-PE_{(pos, 2i)} = \sin\left(\frac{pos}{10000^{\frac{2i}{d_{\text{model}}}}}\right)
-$  
-$
-PE_{(pos, 2i+1)} = \cos\left(\frac{pos}{10000^{\frac{2i}{d_{\text{model}}}}}\right)
-$  
+$PE_{(pos, 2i)} = \sin\left(\frac{pos}{10000^{\frac{2i}{d_{\text{model}}}}}\right)$  
+$PE_{(pos, 2i+1)} = \cos\left(\frac{pos}{10000^{\frac{2i}{d_{\text{model}}}}}\right)$  
 pos:词在序列中的位置  
 i:维度索引（对应位置embedding向量的第i个分量）  
-$d_{model}$：模型的嵌入维度  
+ $d_{model}$ ：模型的嵌入维度  
 对于一个位置编码的向量：偶数维度用sin，奇数维度用cos  
 公式的理解：  
 ①为什么用周期函数？每一个token要唯一性表示，如果用1，2，3...句子长度不确定，遇到更长的直接爆炸；如果像01编码那样设置内部向量的值，不同位置的token不是连续的，对后续位置利用十分不友好；因此用了有界又连续的周期函数。  
@@ -529,13 +528,11 @@ $d_{model}$：模型的嵌入维度
 - sequence mask:在解码器中使它无法看见未来信息（只能依赖于i之前的输出）。  
 解码器中预测是基于自回归机制，则一个词一个词的生成，但为了效率会把输入序列一次性喂给解码器，所以才需要防止解码器偷看。  
 如何做？生成一个上三角为$-\infty$的mask矩阵，其余位置是0，例如：  
-$
-\begin{bmatrix}
+ $\begin{bmatrix}
 0 & -\infty & -\infty \\
 0 & 0 & -\infty \\
 0 & 0 & 0 \\
-\end{bmatrix}
-$  
+\end{bmatrix}$   
 ps:两者都是在$QK^T$操作之后，送到softmax之前加上的。  
 ps:transformer2017原文中只提到了mask，即解码器中的sequence mask，关于两种掩码是在相关博客看的资料。
 #### 6.编码器-解码器（Encoder-Decoder）
@@ -564,13 +561,11 @@ transformer输入是序列，输出也是
 ### 1.mixup
 - 对两个样本-标签数据对按比例相加后形成新的样本-标签数据对。
 - 公式：  
-$
-\begin{aligned}
+ $\begin{aligned}
 \tilde{x} &= \lambda x_i + (1 - \lambda) x_j \\
 \tilde{y} &= \lambda y_i + (1 - \lambda) y_j \\
 \lambda &\sim \text{Beta}(\alpha, \alpha), \quad \alpha > 0
-\end{aligned}
-$
+\end{aligned}$  
 其中x是输入向量，y是标签的one-hot编码，$\lambda$符合参数为$\alpha$的${Beta}$分布，$\alpha$越小，越接近原来的某一张图像，越大混合越均匀。
 - 在自己数据集上实验显示，它加强了模型的泛化能力，一些有过拟合现象的模型有了极大的改善，但准确率小幅度下降。
 ### 2.cutmix
