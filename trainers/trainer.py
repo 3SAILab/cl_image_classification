@@ -20,14 +20,11 @@ import random
 import time
 
 
-def trainer(device, model, log_name, need_seed=False, alpha=0.4):
+def trainer(device, model, data_name, log_name, need_seed=False, alpha=0.4, nlp=False):
     # 选择设备
     print("using {} device.".format(device))
 
-    # 设置数据集路径
     data_root = os.path.abspath(os.getcwd())
-    image_path = os.path.join(data_root, "data", "my_data")
-    assert os.path.exists(image_path),"file {} does not exist.".format(image_path)
 
     # 导入相关参数
     config_path = os.path.join(data_root, "configs", "config.yaml")
@@ -42,38 +39,14 @@ def trainer(device, model, log_name, need_seed=False, alpha=0.4):
     num_classes = train_config.get('num_classes')
 
     # 是否固定种子
-    if need_seed:
-        seed = train_config.get('seed')
-        random.seed(seed)
-        np.random.seed(seed)
-        torch.manual_seed(seed)
-        if torch.cuda.is_available():
-            torch.cuda.manual_seed(seed)
-            torch.cuda.manual_seed_all(seed)
-            torch.backends.cudnn.deterministic = True
-            torch.backends.cudnn.benchmark = False
+    seed = setup_seed(train_config, need_seed)
 
     # 设置并行进程数
     nw = min([os.cpu_count(), batch_size if batch_size > 1 else 0,8])
     print("using {} dataloader workers every process.".format(nw))
 
     # 数据加载和预处理
-    train_dataset = dataset.train_dataset(os.path.join(image_path, "train"))
-    train_num = len(train_dataset)
-    train_loader =  dataloader.train_loader(train_dataset, batch_size,nw)
-
-    val_dataset =  dataset.val_dataset(os.path.join(image_path, "val"))
-    val_num = len(val_dataset)
-    val_loader =  dataloader.val_loader(val_dataset, batch_size,nw)
-
-    print("using {} images for training, using {} images for validation.".format(train_num, val_num))
-
-    # 类别标签写入json文件
-    image_list = train_dataset.class_to_idx
-    cla_dict = dict((val, key) for key, val in image_list.items())
-    json_str = json.dumps(cla_dict, indent=4)
-    with open("configs/my_class_indices.json","w") as json_file:
-        json_file.write(json_str)
+    train_loader, val_loader, train_num, val_num, cla_dict = setup_dataloader(data_name, batch_size, nlp, data_root, nw)
 
     # 导入模型
     net = model(model_config)
@@ -144,7 +117,7 @@ def trainer(device, model, log_name, need_seed=False, alpha=0.4):
         # 初始化混淆矩阵
         if log_name[-1] == '1':
             labels = [label for _, label in cla_dict.items()]
-            confusion = ConfusionMatrix(num_classes, labels, normalize=True, batch_size=batch_size, log_name=log_name)
+            confusion = ConfusionMatrix(num_classes, labels, normalize=False, batch_size=batch_size, log_name=log_name)
 
         # 验证
         net.eval()
@@ -214,3 +187,46 @@ def trainer(device, model, log_name, need_seed=False, alpha=0.4):
     if log_name[-1] == '1':
         plot_training_curves(log_data['Loss List'], log_data['Accuracy List'], log_data['Val Loss List'], log_data['Val Accuracy List'],
                             title="Image Classification Model Performance", name=log_name)
+
+def setup_seed(config, need_seed):
+    if need_seed:
+        seed = config.get('seed')
+        random.seed(seed)
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed(seed)
+            torch.cuda.manual_seed_all(seed)
+            torch.backends.cudnn.deterministic = True
+            torch.backends.cudnn.benchmark = False
+        return seed
+    return -1
+
+def setup_dataloader(data_name, batch_size, nlp, data_root, nw):
+    data_path = os.path.join(data_root, "data", data_name)
+    assert os.path.exists(data_path),"file {} does not exist.".format(data_path)
+
+    if not nlp:
+        # 数据加载和预处理
+        train_dataset = dataset.train_dataset(os.path.join(data_path, "train"))
+        train_num = len(train_dataset)
+        train_loader =  dataloader.train_loader(train_dataset, batch_size, nw)
+
+        val_dataset =  dataset.val_dataset(os.path.join(data_path, "val"))
+        val_num = len(val_dataset)
+        val_loader =  dataloader.val_loader(val_dataset, batch_size,nw)
+
+        print("using {} images for training, using {} images for validation.".format(train_num, val_num))
+
+        # 类别标签写入json文件
+        image_list = train_dataset.class_to_idx
+        cla_dict = dict((val, key) for key, val in image_list.items())
+        json_str = json.dumps(cla_dict, indent=4)
+        file_path = "configs/{}_indices.json".format(data_name)
+        with open(file_path, "w") as json_file:
+            json_file.write(json_str)
+
+    else:
+        pass
+
+    return train_loader, val_loader, train_num, val_num, cla_dict
