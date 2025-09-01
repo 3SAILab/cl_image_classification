@@ -558,7 +558,8 @@ ps:transformer2017原文中只提到了mask，即解码器中的sequence mask，
 # ViT
 ### 一、网络架构
 ![Alt](https://i-blog.csdnimg.cn/blog_migrate/ea5b6d0853616c8798bd219f5e4638c4.png#pic_center)  
-主要分为三个步骤：图像预处理->输入encoder->输入MLP（最终用于分类的层结构）
+主要分为三个步骤：图像预处理->输入encoder->输入MLP（最终用于分类的层结构）  
+![Alt](https://i-blog.csdnimg.cn/blog_migrate/b30a1d9506495166c54cc2f4a460de00.png#pic_center)
 ### 二、重点
 #### 1.Patch Embedding
 - 目的：将图像处理为可输入transformer的数据。
