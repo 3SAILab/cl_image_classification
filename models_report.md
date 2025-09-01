@@ -556,23 +556,33 @@ ps:transformer2017原文中只提到了mask，即解码器中的sequence mask，
 - 关于tgt：一般都需要加，训练时传入去掉< eos >，而labels去掉< sos >,模型输出的是原句序列+< eos >的预测概率，如果< eos >预测不准确可以加大惩罚，也是作为一个结束符；推理时只输入< sos >。  
 为什么tgt一定要有< sos >，而src可以没有呢？因为decoder是自回归生成预测，需要有一个开始标识告诉模型从哪里开始，而encoder可以看到全局序列，是整个输出的，就不需要了。
 # ViT
-### 0.前期工作
-#### 1.做了什么，为什么做？
-- 目前CV领域CNN仍占主导，而transformer架构性能强大，CV领域并未实现纯transformer架构，因此希望构建一个纯transformer架构处理序列图像的模型。
-#### 2.亮点
-- Patch embedding
-- transformer Encoder
-- MLP Head（最终用于分类的层结构）
-#### 3.搞懂
-- embedding层什么作用，如何实现？  
-目的：将图像转换成适合Transformer处理的向量序列。  
-NLP句子如何处理：分词为基本单元token->查表变向量->加入CLS->加入位置编码  
-CV图像如何处理：切分成n个patch->线性变换变向量->加入CLS->加入位置编码
-- 为什么需要位置编码，如何实现？
-- [CLS] token为什么需要设计它，如何实现？  
-transformer输入是序列，输出也是
-- transformer Encoder架构是什么，输出是什么
-- 最终用于分类的层结构是什么？
+### 一、网络架构
+![Alt](https://i-blog.csdnimg.cn/blog_migrate/ea5b6d0853616c8798bd219f5e4638c4.png#pic_center)  
+主要分为三个步骤：图像预处理->输入encoder->输入MLP（最终用于分类的层结构）
+### 二、重点
+#### 1.Patch Embedding
+- 目的：将图像处理为可输入transformer的数据。
+- ①分割图像为m个nxn的patch，相当于nlp的分词。  
+②展平图像（例如16x16x3->768）+线性投影（通过卷积层实现），相当于nlp查表变向量。
+③加位置编码，这里用的是可学习的位置编码。  
+④最前面加[CLS]token（1个D维向量），主要用它来储存全局总结值。  
+#### 2.transformer encoder
+- encoder是用来理解，decoder是用来生成，分类任务只用encoder就可以。
+#### 3.MLP Head
+- 全连接+GELU激活函数+全连接，有升维和降维。
+- GELU激活函数：在延续ReLU优点的同时，比ReLU更平滑，特别是在输入=0时缓解神经元死亡的问题。不过它的计算复杂，开销会比较大。  
+公式：  
+
+$$
+\text{GELU}(x) = x \cdot \Phi(x) = x \cdot \frac{1}{2} \left[1 + \text{erf}\left(\frac{x}{\sqrt{2}}\right)\right]
+$$
+
+
+$$
+\text{erf}(x) = \frac{2}{\sqrt{\pi}} \int_0^x e^{-t^2} \, dt
+$$
+
+![Alt](https://i-blog.csdnimg.cn/blog_migrate/cf95ad3bd95c3b2f9a128a099b1f8ce5.png)
 # 数据增强方法
 ### 1.mixup
 - 对两个样本-标签数据对按比例相加后形成新的样本-标签数据对。
