@@ -9,7 +9,7 @@ from torch.autograd import Variable
 def attention(query, key, value, mask=None, dropout=None):
     # query.shape=key.shape=valie.shape=[batch_size, h, seq_len, d_k]
     d_k = query.size(-1)
-    # 计算注意力分数 scores.shape=[batch_size, h, seq_len, seq_len]
+    # 计算注意力分数 scores.shape=[batch_size, h, seq_len_q, seq_len_k]
     # transpose(-2, -1)表示交换key的倒数第一和倒数第二个维度，即实现转置
     scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(d_k)
     # 用爱因斯坦表示法 scores = torch.einsum('bhqd,bhkd->bhqk', query, key) / math.sqrt(d_k)
@@ -19,9 +19,10 @@ def attention(query, key, value, mask=None, dropout=None):
     p_attn = F.softmax(scores, dim = -1)
     if dropout is not None:
         p_attn = dropout(p_attn)
-    # 注意力权重与V加权求和 [batch_size, h, seq_len, d_k]
+    # 注意力权重与V加权求和 [batch_size, h, seq_len_q, d_k]
+    # !!!注意此处seq_len的值是q的，推理时decoder掩码多头注意力输入的q与k,v序列长度不一样！
     return torch.matmul(p_attn, value), p_attn
-    # 用爱因斯坦表示法 return torch.einsum('bhqk,bhvd->bhkd', p_attn, value), p_attn
+    # 用爱因斯坦表示法 return torch.einsum('bhqk,bhvd->bhqd', p_attn, value), p_attn
 
 # 多头注意力机制
 class MultiHeadedAttention(nn.Module):
