@@ -84,6 +84,11 @@ def trainer(device, model, log_name, need_seed=False, alpha=0.4):
     loss_function = torch.nn.CrossEntropyLoss(label_smoothing=0.1)
     optimizer = optim.Adam(net.parameters(), lr = 0.0001)
 
+    # 初始化混淆矩阵
+    if log_name[-1] == '1':
+        labels = [label for _, label in cla_dict.items()]
+        confusion = ConfusionMatrix(num_classes, labels, normalize=True, batch_size=batch_size, log_name=log_name)
+
     # 训练
     best_acc = 0.0
     save_name = "{}.pth".format(log_name)
@@ -141,10 +146,7 @@ def trainer(device, model, log_name, need_seed=False, alpha=0.4):
                                                                        epochs,
                                                                        loss)
 
-        # 初始化混淆矩阵
-        if log_name[-1] == '1':
-            labels = [label for _, label in cla_dict.items()]
-            confusion = ConfusionMatrix(num_classes, labels, normalize=True, batch_size=batch_size, log_name=log_name)
+        
 
         # 验证
         net.eval()

@@ -16,8 +16,9 @@ from models.squeezenet import SqueezeNet
 from models.wideresnet import wide_resnet50_2_v2, wide_resnet34_2_v2
 from models.densenet import densenet121, densenet161, densenet169, densenet201
 from models.xception import Xception
+from models.new_densenet import new_densenet161
 
-model = resnext50_32x4d
+model = new_densenet161
 device = torch.device('cuda:2' if torch.cuda.is_available() else 'cpu')
 log_name = "{}_{}".format(model.__name__, 1)
 trainer(device=device, model=model, log_name=log_name, need_seed=True, alpha=0.4)
