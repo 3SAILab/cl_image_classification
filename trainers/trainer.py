@@ -22,7 +22,7 @@ import time
 import math
 
 
-def trainer(device, model, log_name, need_seed=False, alpha=0.4):
+def trainer(device, model, log_name, need_seed=False, alpha=0.4, weights=None, freeze_layers=False):
     # 选择设备
     print("using {} device.".format(device))
 
@@ -81,6 +81,26 @@ def trainer(device, model, log_name, need_seed=False, alpha=0.4):
     net = model(model_config)
     net.to(device)
     total_params = sum(p.numel() for p in net.parameters())
+
+    # 预训练权重加载
+    if weights:
+        weights = os.path.join(data_root, "checkpoints", weights)
+        assert os.path.exists(weights), "weights file: '{}' not exist.".format(weights)
+        weights_dict = torch.load(weights, map_location=device)
+        # 删除不需要的权重
+        del_keys = ['head.weight', 'head.bias'] if net.has_logits \
+            else ['pre_logits.fc.weight', 'pre_logits.fc.bias', 'head.weight', 'head.bias']
+        for k in del_keys:
+            if k in weights_dict:
+                del weights_dict[k]
+        print(net.load_state_dict(weights_dict, strict=False))
+    
+    if freeze_layers:
+        for name, para in net.named_parameters():
+            if "head" not in name and "pre_logits" not in name:
+                para.requires_grad_(False)
+            else:
+                print("training {}".format(name))
 
     # 设置损失函数和优化器
     loss_function = torch.nn.CrossEntropyLoss(label_smoothing=0.1)
@@ -206,7 +226,7 @@ def trainer(device, model, log_name, need_seed=False, alpha=0.4):
         "Parameters": total_params,
         "Train Epochs": epochs,
         "Batch Size": batch_size,
-        "Initial Learning Rate": 0.0001,
+        "Initial Learning Rate": 0.001,
         "Seed": seed,
         "Best Accuracy": best_acc,
         "Train Time": total_train_time,
