@@ -134,6 +134,12 @@ ghostnetv1:
 resnest50:
   num_classes: 20
 
+vit_base_patch16_224:
+  num_classes: 20
+
+vit_large_patch16_224:
+  num_classes: 20
+
 train:
   seed: 42
   batch_size: 32
