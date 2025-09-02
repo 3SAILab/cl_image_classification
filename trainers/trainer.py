@@ -12,12 +12,14 @@ from datasets import dataset, dataloader, transform
 import sys
 from tqdm import tqdm
 import torch.optim as optim
+import torch.optim.lr_scheduler as lr_scheduler
 from utils.visualization import plot_training_curves
 from utils.metrics import ConfusionMatrix
 import yaml
 import numpy as np
 import random
 import time
+import math
 
 
 def trainer(device, model, log_name, need_seed=False, alpha=0.4):
@@ -82,7 +84,10 @@ def trainer(device, model, log_name, need_seed=False, alpha=0.4):
 
     # 设置损失函数和优化器
     loss_function = torch.nn.CrossEntropyLoss(label_smoothing=0.1)
-    optimizer = optim.Adam(net.parameters(), lr = 0.0001)
+    pg = [p for p in net.parameters() if p.requires_grad]
+    optimizer = optim.SGD(pg, lr=0.001, momentum=0.9, weight_decay=5E-5)
+    lf = lambda x: ((1 + math.cos(x * math.pi / epochs)) / 2) * (1 - 0.01) + 0.01
+    scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lf)
 
     # 初始化混淆矩阵
     if log_name[-1] == '1':
@@ -170,6 +175,8 @@ def trainer(device, model, log_name, need_seed=False, alpha=0.4):
                                                                          running_loss / train_steps,
                                                                          val_accuracy,
                                                                          epoch_train_end - epoch_train_start))
+
+        scheduler.step()
 
         loss_list.append(running_loss / train_steps)
         accuracy_list.append(running_acc / train_num)
