@@ -1,2 +1,2 @@
-# cl_image_classification
-图像分类的模型以及学习资料
+# cl_vision_detection
+目标检测的模型以及学习资料
