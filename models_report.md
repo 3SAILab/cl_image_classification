@@ -621,6 +621,31 @@ $$
 - 分类（softmax）+ 回归（Bounding-box regression）
 - RCNN是将特征提取、分类与定位分开的，这里直接将他们打包形成一个网络，根据分类和回归的损失共同训练权重。计算简单、高效。
 - 为什么用softmax？RCNN中的特征是死的，但这里是将它们一起训练，特征是会变化的，且端到端的训练中，softmax表现比较好。
+
+# Faster RCNN
+### 一、网络架构
+![Alt](https://i-blog.csdnimg.cn/blog_migrate/3071ca83109ed32202c9188c66d6c6bb.png)  
+RPN+Fast R-CNN
+### 二、重点
+#### 1.Conv layer
+- 用于把输入图像变为feature map，大小固定变为（M/16,N/16）。
+- 包含13个Conv+13个relu+4个pooling。
+#### 2.RPN
+- 用于生成提议区域。
+- 分两条线，上面一条通过softmax分类anchor获得positive和negative分类，下面一条用于计算对于anchors的bounding box regression偏移量。两者结合通过proposal层获得proposals，最后剔除超出边界的，输出最终区域结果。  
+![Alt](https://pica.zhimg.com/v2-1908feeaba591d28bee3c4a754cca282_1440w.jpg)
+- 就是通过分类+回归调整区域位置，不过这里的分类是有无目标的二分类。
+#### 3.Anchor
+- 预设的，有不同尺度和长宽比的参考边界框，feature map每个点上有k个。  
+![Alt](https://pica.zhimg.com/v2-c93db71cc8f4f4fd8cfb4ef2e2cef4f4_1440w.jpg)
+- 感觉anchor其实就是多给几个不同的框，去看有没有目标在里面（positive,negative），对于有目标但框位置不精确的就根据回归来调整。
+#### 4.训练过程
+- 文中推荐交替训练：  
+①用预训练模型训练RPN：固定conv layer，只训练特有层。
+②训练Fast R-CNN：用RPN生成的proposal训练.
+③再训练RPN：用Fast R-CNN的参数初始化conv layer，然后固定，微调特有层。
+④再训练Fast R-CNN：只微调检测头。
+
 # 数据增强方法
 ### 1.mixup
 - 对两个样本-标签数据对按比例相加后形成新的样本-标签数据对。
