@@ -5,6 +5,7 @@ from functools import partial
 import numpy as np
 import torch.nn as nn
 from torch.nn import functional as F
+from torchvision.ops import nms
 
 # 计算iou，即交并率
 def bbox_iou(bbox_a, bbox_b):
@@ -42,9 +43,36 @@ def bbox2loc(src_bbox, dst_bbox):
     loc = np.vstack((dx, dy, dw, dh)).transpose()
     return loc
 
+def loc2bbox(src_bbox, loc):
+    if src_bbox.size(0) == 0:
+        return torch.zeros((0, 4), dtype=loc.dtype, device=loc.device)
+
+    src_width = src_bbox[:, 2] - src_bbox[:, 0]
+    src_height = src_bbox[:, 3] - src_bbox[:, 1]
+    src_ctr_x = src_bbox[:, 0] + 0.5 * src_width
+    src_ctr_y = src_bbox[:, 1] + 0.5 * src_height
+
+    dx = loc[:, 0::4]
+    dy = loc[:, 1::4]
+    dw = loc[:, 2::4]
+    dh = loc[:, 3::4]
+
+    ctr_x = dx * src_width.unsqueeze(1) + src_ctr_x.unsqueeze(1)
+    ctr_y = dy * src_height.unsqueeze(1) + src_ctr_y.unsqueeze(1)
+    w = torch.exp(dw) * src_width.unsqueeze(1)
+    h = torch.exp(dh) * src_height.unsqueeze(1)
+
+    dst_bbox = torch.zeros_like(loc)
+    dst_bbox[:, 0::4] = ctr_x - 0.5 * w
+    dst_bbox[:, 1::4] = ctr_y - 0.5 * h
+    dst_bbox[:, 2::4] = ctr_x + 0.5 * w
+    dst_bbox[:, 3::4] = ctr_y + 0.5 * h
+
+    return dst_bbox
+
 # 生成RPN的训练目标
 class AnchorTargetCreator(object):
-    def __init__(self, n_sample=256, pos_iou_thresh=0.7, neg_iou_thresh=0.3, pos_ratio=0.5):
+    def __init__(self, n_sample=256, pos_iou_thresh=0.5, neg_iou_thresh=0.3, pos_ratio=0.5):
         self.n_sample = n_sample  #总采样数
         self.pos_iou_thresh = pos_iou_thresh  # 正样本阈值
         self.neg_iou_thresh = neg_iou_thresh # 负样本阈值
@@ -106,7 +134,7 @@ class AnchorTargetCreator(object):
         return argmax_ious, label
 
 class ProposalTargetCreator(object):
-    def __init__(self, n_sample=128, pos_ratio=0.5, pos_iou_thresh=0.5, neg_iou_thresh_high=0.5, neg_iou_thresh_low=0):
+    def __init__(self, n_sample=128, pos_ratio=0.5, pos_iou_thresh=0.5, neg_iou_thresh_high=0.3, neg_iou_thresh_low=0):
         self.n_sample = n_sample
         self.pos_ratio = pos_ratio
         self.pos_roi_per_image = np.round(self.n_sample * self.pos_ratio)
@@ -238,6 +266,7 @@ class FasterRCNNTrainer(nn.Module):
 
         sample_rois = torch.stack(sample_rois, dim=0)
         sample_indexes = torch.stack(sample_indexes, dim=0)
+
         roi_cls_locs, roi_scores = self.model_train([base_feature, sample_rois, sample_indexes, img_size], mode = 'head')
         for i in range(n):
             n_sample = roi_cls_locs.size()[1]  # 采样数
@@ -275,6 +304,86 @@ class FasterRCNNTrainer(nn.Module):
             scaler.update()
 
         return losses
+
+    def predict(self, imgs, scale=1.0, nms_thresh=0.3, score_thresh=0.05):
+        self.model_train.eval()
+        with torch.no_grad():
+            batch_size = imgs.shape[0]
+            img_size = imgs.shape[2:]
+
+            base_feature = self.model_train(imgs, mode='extractor')
+
+            _, _, rois, roi_indices, _ = self.model_train(
+                x=[base_feature, img_size], scale=scale, mode='rpn'
+            )
+
+            roi_cls_locs, roi_scores = self.model_train(
+                [base_feature, rois, roi_indices, img_size], mode='head'
+            )
+
+            results = []
+
+            for i in range(batch_size):
+                roi = rois[i] 
+                roi_index = roi_indices[i]   
+
+                # 分类得分和回归偏移
+                roi_cls_loc = roi_cls_locs[i]  # [N, num_classes * 4]
+                roi_score = roi_scores[i]      # [N, num_classes]
+
+                # 解码 bbox
+                roi = roi.view(-1, 1, 4).expand_as(roi_cls_loc)  # [N, num_classes, 4]
+                cls_bbox = loc2bbox(roi.reshape(-1, 4), roi_cls_loc.reshape(-1, 4))
+                cls_bbox = cls_bbox.view(-1, self.model_train.num_classes, 4)  # [N, num_classes, 4]
+
+                # 转换为原图尺度
+                cls_bbox = cls_bbox / scale
+
+                # 获取概率
+                prob = F.softmax(roi_score, dim=1)  # [N, num_classes]
+
+                raw_bboxes, raw_labels, raw_scores = [], [], []
+
+                # 对每个类别（跳过背景 0）
+                for label in range(1, self.model_train.num_classes):
+                    # 取该类别的 bbox 和 score
+                    bbox = cls_bbox[:, label, :]  # [N, 4]
+                    score = prob[:, label]        # [N]
+
+                    # 过滤低分
+                    mask = score > score_thresh
+                    if not mask.any():
+                        continue
+
+                    bbox = bbox[mask]
+                    score = score[mask]
+
+                    # NMS
+                    keep = nms(bbox, score, nms_thresh)
+                    bbox = bbox[keep]
+                    score = score[keep]
+
+                    # 收集结果
+                    raw_bboxes.append(bbox.cpu().numpy())
+                    raw_labels.extend([label] * len(bbox))
+                    raw_scores.extend(score.cpu().numpy())
+
+                if len(raw_bboxes) > 0:
+                    raw_bboxes = np.vstack(raw_bboxes)
+                    raw_labels = np.array(raw_labels)
+                    raw_scores = np.array(raw_scores)
+
+                    # 按分数排序
+                    order = np.argsort(-raw_scores)
+                    raw_bboxes = raw_bboxes[order]
+                    raw_labels = raw_labels[order]
+                    raw_scores = raw_scores[order]
+
+                    results.append((raw_bboxes, raw_labels, raw_scores))
+                else:
+                    results.append((np.array([]), np.array([]), np.array([])))
+
+            return results
 
 # 初始化权重
 def weights_init(net, init_type='normal', init_gain=0.02):

@@ -18,6 +18,7 @@ from functools import partial
 import numpy as np
 import torch.optim as optim
 import yaml
+import cv2
 
 def train():
     # 选择设备
@@ -59,7 +60,7 @@ def train():
         mode="train",
         num_classes=num_classes,
         feat_stride = 16,
-        anchor_scales = [8, 16, 32],
+        anchor_scales = [1, 2, 4],
         ratios = [0.5, 1, 2],
         backbone=backbone,
         pretrained=pretrained
@@ -169,6 +170,7 @@ def train():
                     f'Total: {total.item():.4f}')
 
         scheduler.step()
+        
 
         # 验证
         model.eval()
@@ -193,6 +195,58 @@ def train():
         if epoch == 0 or avg_val_loss < min(loss_val_list[:-1] or [float('inf')]):
             torch.save(model.state_dict(), save_path)
             print(f'>>> Save best model to {save_path}')
+
+# 数据检查
+def visualize_sample(index):
+    # 加载数据
+    data_root = os.path.abspath(os.getcwd())
+    image_path = os.path.join(data_root, "data", "VOCdevkit", "VOC2012")
+    train_annotation_path = os.path.join(image_path, "ImageSets", "Main", "train.txt")
+    val_annotation_path = os.path.join(image_path, "ImageSets", "Main", "val.txt")
+    with open(train_annotation_path, encoding='utf-8') as f:
+        train_lines = f.readlines()
+    with open(val_annotation_path, encoding='utf-8') as f:
+        val_lines = f.readlines()
+
+    train_dataset = FRCNNDataset(train_lines, [600, 600], train=True)
+    val_dataset = FRCNNDataset(val_lines, [600, 600], train=False)
+
+    image, bboxes, labels = train_dataset[index]
+    img = image.transpose(1, 2, 0)
+    img = (img * 255).astype(np.uint8)
+    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+
+    class_path = os.path.join(data_root, "configs", "voc_classes.txt")
+    with open(class_path, "r") as f:
+        class_names = [c.strip() for c in f.readlines()]
+
+    for i, box in enumerate(bboxes):
+        print(box)
+        x1, y1, x2, y2 = box
+
+        # 转为整数，防止浮点坐标
+        x1, y1, x2, y2 = int(round(x1)), int(round(y1)), int(round(x2)), int(round(y2))
+
+        # 防止越界 
+        h, w = img.shape[:2]
+        x1 = max(0, min(x1, w - 1))
+        y1 = max(0, min(y1, h - 1))
+        x2 = max(0, min(x2, w - 1))
+        y2 = max(0, min(y2, h - 1))
+
+        # 获取标签和颜色
+        label = int(labels[i])
+        class_name = class_names[label] if label < len(class_names) else f"cls{label}"
+        color = (0, 255, 0)  
+
+         # 画框 + 标签
+        cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)
+        cv2.putText(img, class_name, (x1, max(5, y1 - 10)), 
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2, cv2.LINE_AA)
+
+        save_path = f"debug_sample_{index}.jpg"
+        cv2.imwrite(save_path, img)
+        print(f"✅ 图片已保存到: {save_path}")
 
 if __name__ == '__main__':
     train()

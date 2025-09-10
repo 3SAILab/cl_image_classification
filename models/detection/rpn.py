@@ -71,7 +71,8 @@ class ProposalCreator():
         if len(keep) < n_post_nms:
             if len(keep) == 0:
                 print("[WARNING] No valid proposals after NMS. Returning a default ROI.")
-                roi = torch.tensor([[0, 0, min(16, img_size[1]), min(16, img_size[0])]], device=roi.device)
+                default_box = [0, 0, min(16, img_size[1]), min(16, img_size[0])]
+                roi = torch.tensor([default_box] * n_post_nms, device=roi.device, dtype=roi.dtype)
                 return roi
             else:
                 index_extra = np.random.choice(range(len(keep)), size=(n_post_nms - len(keep)), replace=True)
