@@ -18,9 +18,10 @@ from trainers.trainer import trainer
 # from models.xception import Xception
 # from models.new_densenet import new_densenet161
 from models.vit import vit_base_patch16_224, vit_large_patch16_224
+from models.vggnet import vgg
 
-model = vit_base_patch16_224
+model = vgg
 device = torch.device('cuda:2' if torch.cuda.is_available() else 'cpu')
 log_name = "{}_{}".format(model.__name__, 1)
-weights = "vit_base_patch16_224.pth"
-trainer(device=device, model=model, log_name=log_name, need_seed=True, alpha=0.4, weights=weights, freeze_layers=True)
+weights = None
+trainer(device=device, model=model, log_name=log_name, need_seed=True, alpha=0.4, weights=weights, freeze_layers=False)
