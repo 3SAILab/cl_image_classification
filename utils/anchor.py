@@ -22,12 +22,12 @@ def _enumerate_shifted_anchor(anchor_base, feat_stride, height, width):
     shift_y = np.arange(0, height * feat_stride, feat_stride)
     shift_x, shift_y = np.meshgrid(shift_x, shift_y)
     # [k, 4] k为网格点总数
-    shift = np.stack((shift_x.ravel(), shift_y.ravel(), shift_x.ravel(),), axis=1)
+    shift = np.stack((shift_x.ravel(), shift_y.ravel(), shift_x.ravel(),shift_y.ravel(),), axis=1)
 
     A = anchor_base.shape[0]
     K = shift.shape[0]
     # 每个网格点上的9个先验框
-    anchor = anchor_base.reshape((1, A, 4) + shift.reshape(K, 1, 4)) # [K, anchor_num, 4]
+    anchor = anchor_base.reshape((1, A, 4)) + shift.reshape(K, 1, 4) # [K, anchor_num, 4]
 
     # 所有先验框
     anchor = anchor.reshape((K * A, 4)).astype(np.float32)

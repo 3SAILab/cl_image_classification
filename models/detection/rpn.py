@@ -27,7 +27,7 @@ class ProposalCreator():
     ):
         self.mode = mode
         self.nms_iou = nms_iou
-        self.n_train_pre_nms = n_train_post_nms
+        self.n_train_pre_nms = n_train_pre_nms
         self.n_train_post_nms = n_train_post_nms
         self.n_test_pre_nms = n_test_pre_nms
         self.n_test_post_nms = n_test_post_nms
@@ -69,8 +69,13 @@ class ProposalCreator():
         keep = nms(roi, score, self.nms_iou)
         # 不足n_post_nms随机重复补充
         if len(keep) < n_post_nms:
-            index_extra = np.random.choice(range(len(keep)), size=(n_post_nms - len(keep)), replace=True)
-            keep = torch.cat([keep, keep[index_extra]])
+            if len(keep) == 0:
+                print("[WARNING] No valid proposals after NMS. Returning a default ROI.")
+                roi = torch.tensor([[0, 0, min(16, img_size[1]), min(16, img_size[0])]], device=roi.device)
+                return roi
+            else:
+                index_extra = np.random.choice(range(len(keep)), size=(n_post_nms - len(keep)), replace=True)
+                keep = torch.cat([keep, keep[index_extra]])
         keep = keep[:n_post_nms]
         roi = roi[keep]
         return roi

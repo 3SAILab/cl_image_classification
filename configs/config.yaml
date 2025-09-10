@@ -145,3 +145,15 @@ train:
   batch_size: 32
   epochs: 50
   num_classes: 20
+
+voc_train:
+  lr: 0.001
+  backbone: 'vgg'
+  pretrained: True
+  Init_Epoch: 0
+  Freeze_Epoch: 2
+  Freeze_batch_size: 4
+  UnFreeze_Epoch: 4
+  Unfreeze_batch_size: 2
+  Freeze_Train: True
+  seed: 42
